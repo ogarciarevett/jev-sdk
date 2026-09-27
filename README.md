@@ -16,7 +16,7 @@ With a GitHub token available to Bun's GitHub dependency resolver, the shorthand
 bun add github:ogarciarevett/jev-sdk
 ```
 
-Do not put a token in `package.json`, a command argument, or a checked-in `.env` file. Set `TYPESAFE_API_KEY` in the consumer's process environment, or use a consumer-owned keychain wrapper that exports it for one invocation. Jev does not read `.env` or a keychain itself.
+Do not put a token in `package.json`, a command argument, or a checked-in `.env` file. Set `TYPESAFE_API_KEY` in the consumer's process environment, or use a consumer-owned keychain wrapper that exports it for one invocation. The installed binaries run Bun with `--no-env-file`; Jev does not load `.env` or a keychain itself.
 
 ## Judge one decision
 
@@ -24,7 +24,7 @@ From the **consumer repository's working directory**:
 
 ```sh
 printf '%s\n' '{"change":"rename a test helper","files":["test/helper.ts"]}' \
-  | jev-judge --state - --questions questions/agent-operations.json --log
+  | bunx --no-install jev-judge --state - --questions questions/agent-operations.json --log
 ```
 
 The bundled generic packs are templates under `node_modules/@ogarciarevett/jev-sdk/questions/`. Copy and customize them into the consumer's own `questions/` directory. `jev-judge` defaults to `questions/agent-operations.json` under the current working directory; `--questions <path>` overrides it. `jev-finding` defaults to both `questions/agent-operations.json` and `questions/plan-decisions.json` under the current working directory; `--questions-directory <path>` overrides their directory. No question pack is read from this package implicitly.

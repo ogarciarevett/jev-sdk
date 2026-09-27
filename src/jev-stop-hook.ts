@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // A Claude Code Stop hook that asks Jev ONE question: can the assistant still make real progress on
 // the goal without the owner? It is NOT installed by this repository; `README.md` holds
 // the lines the owner adds to install it and the line to remove.

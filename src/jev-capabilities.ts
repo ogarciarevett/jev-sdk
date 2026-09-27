@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // Which skills, MCP servers and CLIs a unit of work should load, in two calls.
 //
 //   jev-capabilities --unit <file or -> [--extras <file.json>] [--log]

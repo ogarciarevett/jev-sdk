@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // The command line in front of `judge()`, for a human and for another agent.
 //
 //   jev-judge --state <file or -> --questions <file.json> [--threshold 0.8] [--log]

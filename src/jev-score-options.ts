@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // Scores N options against M dimensions in one call, and prints the weighted table.
 //
 //   jev-score-options --plan <plan.json> [--json] [--min-margin 0.05] [--log]

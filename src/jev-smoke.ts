@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // The optional live smoke. TypeSafe publishes no latency figure, so this measures ours.
 //
 //   TYPESAFE_API_KEY=<key> jev-smoke [--calls 5]

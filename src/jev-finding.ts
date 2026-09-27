@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // Judges one review finding before anybody edits anything.
 //
 //   jev-finding --comment <review comment id> --log

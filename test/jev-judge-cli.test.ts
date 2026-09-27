@@ -1,5 +1,5 @@
 import { afterAll, describe, expect, test } from "bun:test";
-import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
@@ -48,6 +48,22 @@ async function run(argv: readonly string[], stdin = ""): Promise<Run> {
 }
 
 describe("the command line", () => {
+  test("does not load the consumer cwd .env implicitly", async () => {
+    const consumer = join(workspace, "consumer-env");
+    mkdirSync(consumer, { recursive: true });
+    writeFileSync(join(consumer, ".env"), ["TYPESAFE_API_KEY", "synthetic-never-send"].join("=") + "\n");
+    const { TYPESAFE_API_KEY: _ignored, ...environment } = Bun.env;
+    const child = Bun.spawn([cli, "--state", "-", "--questions", questionsPath], {
+      cwd: consumer,
+      env: environment,
+      stdin: new TextEncoder().encode("sample state"),
+      stdout: "pipe",
+      stderr: "pipe",
+    });
+    const stdout = await new Response(child.stdout).text();
+    expect(await child.exited).toBe(0);
+    expect(JSON.parse(stdout).verdicts.needs_owner.reason).toBe("typesafe_api_key_missing");
+  });
   test("reads the state from a file and prints one JSON object", async () => {
     const statePath = join(workspace, "state.txt");
     await Bun.write(statePath, "the worker refused to settle");
