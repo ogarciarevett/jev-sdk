@@ -15,6 +15,9 @@ import { prohibitedPublicValueLabel, redactProhibitedValues } from "./public-tex
 
 export const JEV_REDACTION = "[redacted]";
 
+/** Credential-bearing JSON fields are masked before inspecting their values. */
+const CREDENTIAL_FIELD_NAME = /(?:api[_-]?key|secret|token|password|passphrase|private[_-]?key|signing[_-]?key|authorization)$/iu;
+
 /** JSON that a state or a question may carry. */
 export type JevJsonValue =
   | string
@@ -89,7 +92,10 @@ export function maskJevState(state: JevJsonValue): JevJsonValue {
   if (typeof state === "number" || typeof state === "boolean") return state;
   if (Array.isArray(state)) return state.map((entry) => maskJevState(entry));
   return Object.fromEntries(
-    Object.entries(state).map(([key, entry]) => [key, maskJevState(entry)]),
+    Object.entries(state).map(([key, entry]) => [
+      key,
+      CREDENTIAL_FIELD_NAME.test(key) ? JEV_REDACTION : maskJevState(entry),
+    ]),
   );
 }
 

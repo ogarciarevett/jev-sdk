@@ -45,6 +45,18 @@ describe("masking the text that leaves the machine", () => {
     expect(maskJevText(raw)).toBe(masked);
   });
 
+  test("redacts a complete multiline private key, including its body and end marker", () => {
+    const body = ["synthetic", "base64", "body"].join("");
+    const text = `before\n${pemHeader("BEGIN")}\n${body}\n${pemHeader("END")}\nafter`;
+    expect(maskJevText(text)).toBe("before\n[redacted]\nafter");
+  });
+
+  test("fails closed on an unterminated private key block", () => {
+    const body = ["synthetic", "base64", "body"].join("");
+    const text = `before\n${pemHeader("BEGIN")}\n${body}\ntrailing private text`;
+    expect(maskJevText(text)).toBe("before\n[redacted]");
+  });
+
   test("keeps the line structure a judge needs", () => {
     expect(maskJevText("engine refused\n  reason: risk_limit_exceeded\n")).toBe(
       "engine refused\n reason: risk_limit_exceeded",
