@@ -1,4 +1,5 @@
 import { describe, expect, test } from "bun:test";
+import { jevDecisionLine } from "../src/decision-log";
 
 import {
   JEV_ENDPOINT,
@@ -76,6 +77,31 @@ describe("the request that leaves the machine", () => {
     expect(body.state).toBe("worker [redacted] refused");
     expect(body.questions.needs_owner.instructions).toBe("Does [redacted] have to act?");
     expect(String(calls[0]?.init.body)).not.toContain("fixture-token-value-0001");
+  });
+
+  test("never sends structured credentials in state or question fields", async () => {
+    const secret = ["synthetic", "credential", "value"].join("-");
+    const request: JevJudgeRequest = {
+      state: { nested: { apiKey: secret }, items: [{ password: secret }, { refreshToken: secret }] },
+      questions: {
+        needs_owner: {
+          type: "noul",
+          instructions: { context: [{ authorization: secret }] },
+          criteria: { true: { privateKey: secret }, false: "no action" },
+        },
+      },
+    };
+    const { calls, dependencies } = recorder([answered({ needs_owner: { type: "noul", noul: 0.9 } })]);
+    const result = await judge(request, dependencies);
+    const outbound = String(calls[0]?.init.body);
+    const logged = jevDecisionLine(request, result, new Date().toISOString());
+    expect(outbound).not.toContain(secret);
+    expect(logged).not.toContain(secret);
+    const body = JSON.parse(outbound);
+    expect(body.state.nested.apiKey).toBe("[redacted]");
+    expect(body.state.items).toEqual([{ password: "[redacted]" }, { refreshToken: "[redacted]" }]);
+    expect(body.questions.needs_owner.instructions.context[0].authorization).toBe("[redacted]");
+    expect(body.questions.needs_owner.criteria.true.privateKey).toBe("[redacted]");
   });
 
   test("measures one latency for the call", async () => {

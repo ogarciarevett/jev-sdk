@@ -8,6 +8,11 @@ const PARTY_ID_PATTERN_SOURCE = "[A-Za-z0-9][A-Za-z0-9._-]*::[A-Za-z0-9][A-Za-z0
 const CREDENTIAL_KEY_VALUE = String.raw`\b[a-z0-9_-]*(?:api[_-]?key|secret|token|password|passphrase|private[_-]?key|signing[_-]?key)["'\\]*\s*[:=]\s*["'\\]*[^\s"',;\\]+`;
 
 const PROHIBITED_PUBLIC_PATTERNS: ReadonlyArray<{ label: string; pattern: RegExp }> = [
+  // Match the whole block. Without an END marker, consume the rest of the text rather than leak it.
+  {
+    label: "private key",
+    pattern: /-----BEGIN ([A-Z ]*PRIVATE KEY)-----[\s\S]*?(?:-----END \1-----|$)/giu,
+  },
   { label: "account id", pattern: /\bacct_(?:[a-z0-9_-]+|…+|\.\.\.+)/giu },
   // Mask identifier-shaped Party values in free text.
   { label: "party id", pattern: new RegExp(String.raw`\b${PARTY_ID_PATTERN_SOURCE}`, "gu") },
