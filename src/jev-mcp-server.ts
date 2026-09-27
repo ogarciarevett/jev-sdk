@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // Dependency-free MCP stdio server exposing one jev_judge tool.
 import { type JevJudgeRequest, JevUsageError, jevDependenciesFrom, judge } from "./judge";
 import { forEachLine } from "./stdin";

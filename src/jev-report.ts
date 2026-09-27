@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // What the decision log says about each question, so a bar is tuned on counted results.
 //
 //   jev-report [--directory <path>] [--json]

@@ -1,4 +1,4 @@
-#!/usr/bin/env bun
+#!/usr/bin/env -S bun --no-env-file
 // Records what a decision turned out to be, on the same log the judge writes.
 //
 //   jev-outcome --digest <stateDigest> --outcome right|wrong|unknown --note "..."

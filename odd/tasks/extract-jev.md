@@ -13,7 +13,7 @@ TDD: enabled by user-provided instructions; runner `bun test`; RED → GREEN →
 Delivery strategy: ask-on-risk; forecast exceeds 400 authored lines because existing runtime and tests are being extracted, but no pull request is requested. Remote operation explicitly authorized only for creating and pushing `ogarciarevett/jev-sdk`.
 
 - [x] J1 Port generic runtime and CLI with consumer-relative configuration and tests. Acceptance: `bun test` 326 passed, 0 failed; `bunx tsc --noEmit` passed. Commit: `9182b6c`.
-- [ ] J2 Package skill, generic packs and README; scrub and audit all tracked content. Acceptance: installation/judge example, no source-specific paths or sensitive data. Evidence: pending.
+- [x] J2 Package skill, generic packs and README; scrub and audit all tracked content. Acceptance: local consumer binary smoke passed, secret/connection-string scan found no matches, no `.env` or `.local/` tracked, no Edel-only name/path in `src/`; `bun test` 327 passed and `bunx tsc --noEmit` passed. Docs commit: `cb05ccd`.
 - [ ] J3 Commit and publish the private repository; verify GitHub visibility. Acceptance: `gh repo view` reports PRIVATE. Evidence: pending.
 
-Next step: Audit packaged documentation and the staged content, then publish privately.
+Next step: Finalize the branch and publish the private repository, then verify visibility.

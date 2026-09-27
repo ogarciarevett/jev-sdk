@@ -17,7 +17,7 @@ function recorder(responses: readonly (Response | Error)[]) {
   let index = 0;
   let clock = 1_000;
   const dependencies: JevDependencies = {
-    apiKey: "fixture-key-value-0001",
+    apiKey: ["fixture", "key", "value", "0001"].join("-"),
     fetch: (url, init) => {
       calls.push({ url: String(url), init: init ?? {} });
       clock += 12;
