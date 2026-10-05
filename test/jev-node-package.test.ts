@@ -34,7 +34,8 @@ const SHIPPED_DIRECTORIES = ["dist/", "questions/", "skills/"];
 const SHIPPED_FILES = ["package.json", "README.md", "LICENSE"];
 /** What it must never hold, whatever `files` says: local state, plans, tests, sources, keys. */
 const NEVER_SHIPPED = /^(\.local|odd|test|src)\/|(^|\/)\.env/;
-const SYNTHETIC_ENV_FILE = `${["TYPESAFE_API_KEY", "synthetic-never-send"].join("=")}\n`;
+const STALE_BUILD_OUTPUT = "dist/stale-from-a-removed-source.js";
+const SYNTHETIC_ENV_FILE =`${["TYPESAFE_API_KEY", "synthetic-never-send"].join("=")}\n`;
 /** The one question and the one override that both the consumers and the expectations use. */
 const SAMPLE_QUESTION = { type: "noul", instructions: "Does the owner have to act?" } as const;
 const THRESHOLD_OVERRIDE = 0.95;
@@ -155,6 +156,9 @@ describe.skipIf(tools === undefined)("the packed package under plain Node", () =
 
   beforeAll(async () => {
     workspace = mkdtempSync(join(tmpdir(), "jev-node-package-"));
+    // Output from an earlier build whose source is gone; the build must clear it, not ship it.
+    mkdirSync(join(repositoryRoot, "dist"), { recursive: true });
+    writeFileSync(join(repositoryRoot, STALE_BUILD_OUTPUT), "export {};\n");
     // `prepack` runs this same build, but npm prints its output into its own, so the test builds
     // first and packs with scripts off.
     await succeed([npm, "run", "build"], repositoryRoot);
@@ -202,6 +206,11 @@ describe.skipIf(tools === undefined)("the packed package under plain Node", () =
 
   test("never ships local state, plans, tests, sources, or environment files", () => {
     expect(entries.filter((entry) => NEVER_SHIPPED.test(entry))).toEqual([]);
+  });
+
+  test("clears output an earlier build left in dist before it builds", () => {
+    expect(existsSync(join(repositoryRoot, STALE_BUILD_OUTPUT))).toBe(false);
+    expect(entries).not.toContain(STALE_BUILD_OUTPUT);
   });
 
   test("points every module export at built JavaScript and its declarations", () => {
