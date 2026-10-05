@@ -14,9 +14,9 @@ import {
   jevGitSaysPathIsAbsent,
   jevReviewCommentPath,
   jevSafeCitationPath,
-} from "../src/finding";
-import { jevQuestionsFrom } from "../src/jev-judge";
-import { JevUsageError, type JevVerdict, maskedJevRequest } from "../src/judge";
+} from "../src/finding.ts";
+import { jevQuestionsFrom } from "../src/jev-judge.ts";
+import { JevUsageError, type JevVerdict, maskedJevRequest } from "../src/judge.ts";
 
 const OUTSIDE_DIFF = [
   '- <img alt="P1" src="https://example.invalid/p1.svg" align="top">&nbsp;**Outcomes Conflate ',

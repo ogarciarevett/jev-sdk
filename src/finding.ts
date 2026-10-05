@@ -8,8 +8,8 @@
 //
 // The judge does not read the repository, so the caller reads it: the cited lines at the base go in
 // `base_code` and the touched hunk goes in `diff`. A question whose answer is a fact gets a guess.
-import { type JevQuestion, type JevQuestions, JevUsageError, type JevVerdict } from "./judge";
-import type { JevJsonValue } from "./mask";
+import { type JevQuestion, type JevQuestions, JevUsageError, type JevVerdict } from "./judge.ts";
+import type { JevJsonValue } from "./mask.ts";
 
 /** Where a finding says the defect is. */
 export type JevFindingCitation = {

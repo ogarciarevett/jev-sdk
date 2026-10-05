@@ -1,6 +1,6 @@
 // Reading standard input the same way in the three entry points that need it, so none of them
-// carries its own copy. `process.stdin` rather than `Bun.stdin`: the tooling typecheck project has
-// no Bun globals (see `tsconfig.scripts.json`), and the Node stream is typed and behaves the same.
+// carries its own copy. `process.stdin` rather than `Bun.stdin`: the published build has no Bun
+// globals (see `tsconfig.build.json`), and the Node stream is typed and behaves the same.
 export type ByteStream = AsyncIterable<Uint8Array>;
 
 /** Every byte of `stream`, decoded as UTF-8. */

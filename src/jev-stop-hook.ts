@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // A Claude Code Stop hook that asks Jev ONE question: can the assistant still make real progress on
 // the goal without the owner? It is NOT installed by this repository; `README.md` holds
 // the lines the owner adds to install it and the line to remove.
@@ -14,8 +14,8 @@ import {
   type JevVerdict,
   jevDependenciesFrom,
   judge,
-} from "./judge";
-import { readAllText } from "./stdin";
+} from "./judge.ts";
+import { readAllText } from "./stdin.ts";
 
 export const JEV_STOP_QUESTION_ID = "can_make_progress";
 

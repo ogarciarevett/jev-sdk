@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { maskedDigest, maskJevQuestions, maskJevState, maskJevText } from "../src/mask";
+import { maskedDigest, maskJevQuestions, maskJevState, maskJevText } from "../src/mask.ts";
 
 // The secret scanner reads this file's bytes, and a written PEM header is private key material to
 // it, so the boundary is composed the way `packages/observability/test/pipeline-3/failure-cause.test.ts`

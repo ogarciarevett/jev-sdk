@@ -16,7 +16,7 @@ With a GitHub token available to Bun's GitHub dependency resolver, the shorthand
 bun add github:ogarciarevett/jev-sdk
 ```
 
-Do not put a token in `package.json`, a command argument, or a checked-in `.env` file. Set `TYPESAFE_API_KEY` in the consumer's process environment, or use a consumer-owned keychain wrapper that exports it for one invocation. The installed binaries run Bun with `--no-env-file`; Jev does not load `.env` or a keychain itself.
+Do not put a token in `package.json`, a command argument, or a checked-in `.env` file. Set `TYPESAFE_API_KEY` in the consumer's process environment, or use a consumer-owned keychain wrapper that exports it for one invocation. The installed binaries run under plain Node, which loads no `.env` file unless asked; Jev does not load `.env` or a keychain itself.
 
 ## Judge one decision
 
@@ -68,4 +68,7 @@ No changes to either consumer were made by this extraction.
 bun install
 bun test
 bunx tsc --noEmit
+bun run build
 ```
+
+`bun test` includes a smoke test that builds and packs the package, unpacks it into a temporary consumer, and imports and runs it with plain `node`; it needs `node` and `npm` on `PATH` and is skipped without them.

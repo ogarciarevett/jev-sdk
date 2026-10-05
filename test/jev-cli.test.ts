@@ -3,8 +3,8 @@ import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
-import { jevFractionFlag, jevJsonFileAt, jevNumberFlag, parseJevFlags } from "../src/cli";
-import { JevUsageError } from "../src/judge";
+import { jevFractionFlag, jevJsonFileAt, jevNumberFlag, parseJevFlags } from "../src/cli.ts";
+import { JevUsageError } from "../src/judge.ts";
 
 const workspace = mkdtempSync(join(tmpdir(), "jev-flags-"));
 afterAll(() => {

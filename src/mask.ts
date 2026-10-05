@@ -11,7 +11,7 @@
 // stores. The raw text is never written anywhere.
 import { createHash } from "node:crypto";
 
-import { prohibitedPublicValueLabel, redactProhibitedValues } from "./public-text-sanitizer";
+import { prohibitedPublicValueLabel, redactProhibitedValues } from "./public-text-sanitizer.ts";
 
 export const JEV_REDACTION = "[redacted]";
 

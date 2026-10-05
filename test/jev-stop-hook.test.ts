@@ -9,7 +9,7 @@ import {
   jevStopExit,
   jevStopInputFrom,
   lastAssistantMessageIn,
-} from "../src/jev-stop-hook";
+} from "../src/jev-stop-hook.ts";
 
 const repositoryRoot = join(import.meta.dir, "..");
 const hook = join(repositoryRoot, "src", "jev-stop-hook.ts");

@@ -9,7 +9,7 @@ import {
   type JevStakes,
   maskJevQuestions,
   maskJevState,
-} from "./mask";
+} from "./mask.ts";
 
 export {
   JEV_QUESTION_TYPES,
@@ -19,7 +19,7 @@ export {
   type JevQuestions,
   type JevQuestionType,
   type JevStakes,
-} from "./mask";
+} from "./mask.ts";
 
 export const JEV_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 export const JEV_MODEL = "jev-latest";

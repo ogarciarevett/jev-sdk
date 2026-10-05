@@ -2,7 +2,7 @@ import { afterAll, describe, expect, test } from "bun:test";
 import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { JevUsageError, type JevVerdict, maskedJevRequest } from "../src/judge";
+import { JevUsageError, type JevVerdict, maskedJevRequest } from "../src/judge.ts";
 import {
   JEV_SCORE_DEFAULT_MARGIN,
   type JevScorePlan,
@@ -10,7 +10,7 @@ import {
   jevScoreQuestions,
   jevScoreTable,
   jevScoreTableText,
-} from "../src/score-options";
+} from "../src/score-options.ts";
 
 const PLAN: JevScorePlan = {
   state: { symptom: "the halt gate engaged 52 times in an hour" },

@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // Scores N options against M dimensions in one call, and prints the weighted table.
 //
 //   jev-score-options --plan <plan.json> [--json] [--min-margin 0.05] [--log]
@@ -8,21 +8,21 @@
 // so the reason one option won is readable and adjustable.
 import { join } from "node:path";
 
-import { jevFractionFlag, jevJsonFileAt, jevNumberFlag, parseJevFlags, runJevCli } from "./cli";
+import { jevFractionFlag, jevJsonFileAt, jevNumberFlag, parseJevFlags, runJevCli } from "./cli.ts";
 import {
   appendJevDecision,
   JEV_DECISION_LOG_DIRECTORY,
   jevDecisionLine,
   jevLogDate,
-} from "./decision-log";
-import { type JevJudgeRequest, jevDependenciesFrom, judge } from "./judge";
+} from "./decision-log.ts";
+import { type JevJudgeRequest, jevDependenciesFrom, judge } from "./judge.ts";
 import {
   JEV_SCORE_DEFAULT_MARGIN,
   jevScorePlanFrom,
   jevScoreQuestions,
   jevScoreTable,
   jevScoreTableText,
-} from "./score-options";
+} from "./score-options.ts";
 
 export const JEV_SCORE_USAGE = `Score several options against several weighted dimensions, in one call.
 

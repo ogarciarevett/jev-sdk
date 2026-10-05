@@ -1,7 +1,7 @@
 import { describe, expect, test } from "bun:test";
 import { join } from "node:path";
 
-import { JEV_SMOKE_DEFAULT_CALLS, jevLatencySummary } from "../src/jev-smoke";
+import { JEV_SMOKE_DEFAULT_CALLS, jevLatencySummary } from "../src/jev-smoke.ts";
 
 const repositoryRoot = join(import.meta.dir, "..");
 const smoke = join(repositoryRoot, "src", "jev-smoke.ts");

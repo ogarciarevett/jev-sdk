@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // Records what a decision turned out to be, on the same log the judge writes.
 //
 //   jev-outcome --digest <stateDigest> --outcome right|wrong|unknown --note "..."
@@ -7,7 +7,7 @@
 // call already wrote, so the two halves join without the state ever being stored.
 import { join } from "node:path";
 
-import { jevTextFileAt, parseJevFlags, runJevCli } from "./cli";
+import { jevTextFileAt, parseJevFlags, runJevCli } from "./cli.ts";
 import {
   appendJevDecision,
   JEV_DECISION_LOG_DIRECTORY,
@@ -17,8 +17,8 @@ import {
   jevLogDate,
   jevOutcomeLine,
   readJevLog,
-} from "./decision-log";
-import { JevUsageError } from "./judge";
+} from "./decision-log.ts";
+import { JevUsageError } from "./judge.ts";
 
 export const JEV_OUTCOME_USAGE = `Record how one Jev decision turned out.
 
