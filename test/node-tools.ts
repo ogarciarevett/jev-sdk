@@ -21,6 +21,21 @@ export function nodeToolsGate(
   };
 }
 
+/** Where `nodeTools` looks tools up and how it reports a missing one; tests replace them. */
+export type NodeToolsHooks = {
+  readonly which: (name: string) => string | null;
+  readonly environment: Readonly<Record<string, string | undefined>>;
+  readonly registerFailure: (name: string, body: () => void) => void;
+  readonly warn: (message: string) => void;
+};
+
+const BUN_HOOKS: NodeToolsHooks = {
+  which: (name) => Bun.which(name),
+  environment: Bun.env,
+  registerFailure: (name, body) => test(name, body),
+  warn: (message) => console.warn(message),
+};
+
 /**
  * The path of every named tool, or undefined when one is missing. A missing tool registers one
  * failing test under the flag and prints a skip notice without it; the caller skips its suite.
@@ -28,20 +43,21 @@ export function nodeToolsGate(
 export function nodeTools<const Name extends string>(
   names: readonly Name[],
   suite: string,
+  hooks: NodeToolsHooks = BUN_HOOKS,
 ): Readonly<Record<Name, string>> | undefined {
-  const paths = Object.fromEntries(names.map((name) => [name, Bun.which(name) ?? ""]));
+  const paths = Object.fromEntries(names.map((name) => [name, hooks.which(name) ?? ""]));
   const gate = nodeToolsGate(
     names.filter((name) => paths[name] === ""),
-    Bun.env,
+    hooks.environment,
   );
   if (gate.run) return paths as Record<Name, string>;
   const reason = `${suite} needs ${gate.missing} on PATH`;
   if (gate.fail) {
-    test(`${reason} (${REQUIRE_NODE_VARIABLE}=1)`, () => {
+    hooks.registerFailure(`${reason} (${REQUIRE_NODE_VARIABLE}=1)`, () => {
       throw new Error(`${reason}, and ${REQUIRE_NODE_VARIABLE}=1 forbids skipping it`);
     });
   } else {
-    console.warn(`Skipping ${suite}: it needs ${gate.missing} on PATH.`);
+    hooks.warn(`Skipping ${suite}: it needs ${gate.missing} on PATH.`);
   }
   return undefined;
 }
