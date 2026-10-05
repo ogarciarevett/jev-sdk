@@ -45,7 +45,7 @@ The version decides the dist-tag, and the GitHub pre-release box must agree with
 | Job | Does | Stops when |
 | --- | --- | --- |
 | `verify` | Checks out the tag, records its commit, resolves the dist-tag (`scripts/release-tag.ts`), then runs the typecheck, the build, and the tests with the Node smoke test required. | The tag is not `v<package.json version>`, the version has an unsupported shape, the pre-release box disagrees with the version, or any check fails. |
-| `npm` | Checks out the verified commit, skips if npm already has the version, otherwise runs `npm publish --access public --provenance --tag <dist-tag>`. | The tag moved after verification, npm 11.5.1 or newer is missing, or the registry check gets any error other than "not found". |
+| `npm` | Checks out the verified commit, skips if npm already has the version, otherwise runs `npm publish --access public --provenance --tag <dist-tag>`. | The tag moved after verification, npm 11.5.1 or newer is missing, the registry check gets any error other than "not found", or it gives no clear `true` or `false` answer. |
 | `github-packages` | The same against `https://npm.pkg.github.com`, with the workflow's `GITHUB_TOKEN`. | The same. |
 
 - npm authenticates with trusted publishing: npm exchanges the workflow's OIDC token for a short-lived publish token, so no npm token is stored once the bootstrap below is done. Every npm release carries a provenance attestation.

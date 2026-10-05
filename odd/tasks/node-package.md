@@ -23,12 +23,12 @@ Delivery: feature-branch-chain (the user's choice for Booker, reused): tracker `
 
 ## Tasks
 - [x] N1 Node build, license, package metadata, Node smoke test. Commit `1060462` on `feat/node-package-01-node-build`.
-- [x] N2 PR CI workflow, release workflow, dist-tag helper with tests. Commits `873ac08`, `16b92de`, and the review follow-up `03a5194` on `feat/node-package-02-ci-release`.
-- [x] N3 README and RELEASING.md. Commit `7506864` (cross-platform build clean) and the `docs:` commit that records this line, on `feat/node-package-03-docs`.
+- [x] N2 PR CI workflow, release workflow, dist-tag helper with tests. Commits `873ac08`, `16b92de`, and the review follow-ups `03a5194` and `a4196f9` on `feat/node-package-02-ci-release`.
+- [x] N3 README and RELEASING.md. Commit `6b55e96` (cross-platform build clean) and `c59cfd4` (docs), on `feat/node-package-03-docs` (rebased onto `a4196f9`).
 
 ## Acceptance
 - [x] `node -e "import('@ogarciarevett/jev-sdk/judge')"` style smoke passes against the built package from a temp consumer, and one bin runs under Node. (`test/jev-node-package.test.ts`, N1)
-- [x] `bun test` and typecheck green. (at `1060462`, `16b92de`, `03a5194`, and on `feat/node-package-03-docs`)
+- [x] `bun test` and typecheck green. (at `1060462`, `16b92de`, `03a5194`, `a4196f9`, and the rebased `feat/node-package-03-docs` tip)
 - [x] Docs: README for a public npm install with channels, runtimes, the key, verdicts, commands, and library subpaths; RELEASING.md with channels, checks, refusals, partial-publish recovery, the bootstrap, dist-tags, and GitHub Packages installs. (N3)
 - [x] Release dry run computes the right dist-tag for stable, rc, beta, alpha, and rejects mismatches. (`test/release-tag.test.ts` and manual `node scripts/release-tag.ts` runs, N2)
 - [x] Packed tarball (`npm pack --dry-run` equivalent) contains no `.local`, `odd`, `test`, or secrets. (the smoke test asserts an allowlist and a denylist over `tar -tzf` of the real `npm pack` tarball)
@@ -52,7 +52,7 @@ Decisions:
 
 Open items from N1, resolved in N3:
 - README install section documented GitHub installs, which no longer carry `dist/`: replaced by the registry install (N3 docs).
-- `build` used `rm -rf`: now `node -e "require('node:fs').rmSync(...)"` (`7506864`).
+- `build` used `rm -rf`: now `node -e "require('node:fs').rmSync(...)"` (`6b55e96`).
 - `bun.lock` still names the workspace `@ogarciarevett/jev`: left as is, because `bun install` reports no changes and does not regenerate it; harmless, and the frozen install passes.
 
 ### N2 (done, `873ac08`, `16b92de`)
@@ -70,12 +70,21 @@ Open items from N1, resolved in N3:
 - `scripts/registry-version.ts` (+ tests with a fake `npm` on PATH) runs `npm view <name>@<version> version --json` with the job's token: exit 0 with that version means published; npm's `E404` (no package, or no such version) means absent; E401, E403, network codes, non-JSON, or a mismatched answer exit 1. Each publish job skips with a notice when the version exists, so "Re-run all jobs" is safe. Live check: `@ogarciarevett/jev-sdk@0.1.0` not published yet, `typescript@5.9.3` already published.
 - The concurrency comment says a cancelled waiting release must be re-run by hand; `nodeTools` takes injectable hooks with tests for the failure and skip paths (RED: 3 fail before the hooks existed); `typescript` renamed `tscBin`.
 - Checks: `JEV_REQUIRE_NODE_SMOKE=1 bun test` 387 pass, 0 fail, 17 files (Node 26.9 and Node 22.18.0); `bunx tsc --noEmit` clean; `bun run build` clean; `actionlint` 0 errors; gitleaks `git` no leaks.
+- Review: approved with two warnings, corrected in `a4196f9`.
 
-### N3 (done, `7506864` and the `docs:` commit)
-- `7506864` build: `dist` is cleared with Node's `fs.rmSync` instead of `rm -rf`. The smoke test plants a stale `dist` file before building and checks that neither the tree nor the tarball keeps it; with the clean removed (mutation) that test failed, and `bun run build` works even with no `node` on PATH.
+### N2 review correction (done, `a4196f9`)
+- Each publish job fails before publishing or skipping when the registry check's `published` output is not exactly `true` or `false`.
+- `scripts/entry-point.ts`: the CI scripts run their main unless `import.meta.main` is explicitly `false` (imported by the tests). Before, a runtime without `import.meta.main` exited 0 having checked nothing: observed with Node 24.1.0 (strips types, no `import.meta.main`), where a refused release exited 0; after the fix it exits 1 with the reason. RED: `test/entry-point.test.ts` failed with `Cannot find module`.
+- `registry-version` reads npm's JSON error from stderr when stdout has none (also after npm's warning lines); stdout wins when both carry one; npm's text-only error lines are not trusted. RED: 4 stderr cases failed before the fallback.
+- Tests for `GITHUB_OUTPUT` unset and empty (both scripts) and the `registry-version` usage error (exit 2). Both moved-tag guards explain why the last `ls-remote` line is the commit (kept inline; a shared script would need its own tests for no gain).
+- Checks on the N2 tip: `JEV_REQUIRE_NODE_SMOKE=1 bun test` 400 pass, 0 fail, 18 files (Node 26.9 and Node 22.18.0); `bunx tsc --noEmit` clean; `bun run build` clean; `actionlint` 0 errors; gitleaks `git` no leaks.
+
+### N3 (done, `6b55e96` and `c59cfd4`, rebased onto `a4196f9`)
+- `6b55e96` build: `dist` is cleared with Node's `fs.rmSync` instead of `rm -rf`. The smoke test plants a stale `dist` file before building and checks that neither the tree nor the tarball keeps it; with the clean removed (mutation) that test failed, and `bun run build` works even with no `node` on PATH.
 - README rewritten for the public npm package: install (npm, pnpm, Bun), dist-tags, runtimes, the key and `.env` behavior (Node loads none unless asked; Bun does unless `--no-env-file`), verdict fields and every `undecided` reason, the command table, library subpaths, packs and skill, a neutral "migrating from a source checkout" paragraph, development. The Git/private install and the consumer-specific follow-up and extraction sections are gone. Badges: CI workflow, npm version (resolves after the first publish), license.
 - RELEASING.md: quick path, the channel table, what each job checks, refusals and their fixes, partial-publish recovery, the bootstrap, dist-tag moves and deprecation, GitHub Packages installs (classic token with `read:packages`).
 - `src/jev-stop-hook.ts` header no longer points at README lines that never existed.
+- Checks on the tip rebased onto `a4196f9`: `JEV_REQUIRE_NODE_SMOKE=1 bun test` 401 pass, 0 fail, 18 files (Node 26.9 and Node 22.18.0); `bunx tsc --noEmit` clean; `bun run build` clean; `actionlint` 0 errors; gitleaks `git` no leaks, `dir` only the ignored `.local/review-status.json`.
 - Review: tier not assessed by the writer; pending the parent.
 
 Decisions:
