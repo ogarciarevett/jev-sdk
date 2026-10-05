@@ -84,7 +84,10 @@ Each question id in the result maps to a verdict:
 | `response_schema_mismatch`, `answer_missing`, `answer_type_mismatch` | The answer did not have the expected shape. |
 | `below_threshold` | The service answered, but not confidently enough for this question's bar. |
 
-The commands exit 0 for any verdict, `undecided` included, and 2 for a usage error.
+The judging commands exit 0 for any verdict, `undecided` included, and 2 for a usage error. Two commands differ:
+
+- `jev-stop-hook` follows the Claude Code Stop hook contract: exit 0 lets the assistant stop (on `no`, `undecided`, or any failure), and exit 2 blocks the stop on `yes`, with the reason on stderr.
+- `jev-smoke` exits 2 when `TYPESAFE_API_KEY` is missing, instead of reporting a latency it never measured.
 
 ## Commands
 
