@@ -1,0 +1,5 @@
+# Known false positives, by exact gitleaks fingerprint; a new or moved match is reported again.
+# A fake JWT in the masking fixture of test/jev-mask.test.ts (audited 2026-10-05): the commit that
+# added it, for `gitleaks git`, and the working-tree file, for `gitleaks dir`.
+9182b6c656b0ff185160585d946b84dfead5e2bc:test/jev-mask.test.ts:jwt:27
+test/jev-mask.test.ts:jwt:27
