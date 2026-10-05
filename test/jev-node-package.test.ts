@@ -5,30 +5,29 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
-  renameSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { delimiter, dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 
 import { JEV_STAKES_THRESHOLDS, jevThresholdFor } from "../src/judge.ts";
+import { nodeTools } from "./node-tools.ts";
 
 // The published package as a Node consumer sees it. Bun runs the TypeScript sources directly, so
 // every other test would pass on a package that plain Node refuses to load (Node does not strip
 // types under node_modules). This one builds and packs the package the way `npm publish` does,
-// unpacks the tarball into a throwaway consumer, and imports and runs it with `node`, never Bun.
+// installs the tarball into a throwaway consumer, and imports, type-checks, and runs it with
+// `node`, never Bun.
 
 const PACKAGE_NAME = "@ogarciarevett/jev-sdk";
 const NODE_SHEBANG = "#!/usr/bin/env node\n";
 const repositoryRoot = join(import.meta.dir, "..");
-const node = Bun.which("node") ?? "";
-const npm = Bun.which("npm") ?? "";
-const missingTool = node === "" ? "node" : npm === "" ? "npm" : undefined;
-if (missingTool !== undefined) {
-  console.warn(`Skipping the Node package smoke test: ${missingTool} is not on PATH.`);
-}
+const typescript = join(repositoryRoot, "node_modules", "typescript", "bin", "tsc");
+const tools = nodeTools(["node", "npm"], "the Node package smoke test");
+const node = tools?.node ?? "";
+const npm = tools?.npm ?? "";
 
 /** What the tarball may hold: the build, the question packs, the skill, the package documents. */
 const SHIPPED_DIRECTORIES = ["dist/", "questions/", "skills/"];
@@ -36,6 +35,14 @@ const SHIPPED_FILES = ["package.json", "README.md", "LICENSE"];
 /** What it must never hold, whatever `files` says: local state, plans, tests, sources, keys. */
 const NEVER_SHIPPED = /^(\.local|odd|test|src)\/|(^|\/)\.env/;
 const SYNTHETIC_ENV_FILE = `${["TYPESAFE_API_KEY", "synthetic-never-send"].join("=")}\n`;
+/** The one question and the one override that both the consumers and the expectations use. */
+const SAMPLE_QUESTION = { type: "noul", instructions: "Does the owner have to act?" } as const;
+const THRESHOLD_OVERRIDE = 0.95;
+/** The module settings a TypeScript consumer is likely to have. */
+const TYPESCRIPT_CONSUMERS = [
+  ["NodeNext", { module: "NodeNext", moduleResolution: "NodeNext" }],
+  ["Bundler", { module: "Preserve", moduleResolution: "Bundler" }],
+] as const;
 
 type Run = { code: number; stdout: string; stderr: string };
 type ExportTarget = string | { readonly types?: string; readonly default?: string };
@@ -45,8 +52,13 @@ type Manifest = {
 };
 
 // Neither the key nor NODE_OPTIONS reaches a child: the CLI must answer without a key, and a loader
-// injected through NODE_OPTIONS could make a broken package look importable.
-const { TYPESAFE_API_KEY: _key, NODE_OPTIONS: _nodeOptions, ...environment } = Bun.env;
+// injected through NODE_OPTIONS could make a broken package look importable. The Node the suite
+// found leads PATH, so a bin's `#!/usr/bin/env node` starts that Node, not a Bun stand-in.
+const { TYPESAFE_API_KEY: _key, NODE_OPTIONS: _nodeOptions, ...inherited } = Bun.env;
+const environment = {
+  ...inherited,
+  PATH: node === "" ? inherited.PATH : [dirname(node), inherited.PATH].join(delimiter),
+};
 
 async function run(argv: readonly string[], cwd: string, stdin = ""): Promise<Run> {
   const child = Bun.spawn([...argv], {
@@ -77,23 +89,27 @@ function javascriptSubpaths(manifest: Manifest): string[] {
   return Object.keys(manifest.exports).filter((subpath) => !subpath.includes("*"));
 }
 
-/** The module a consumer script imports, written in that consumer's own directory. */
+function specifierOf(subpath: string): string {
+  return subpath === "." ? PACKAGE_NAME : `${PACKAGE_NAME}/${subpath.slice(2)}`;
+}
+
+/** The module a JavaScript consumer runs, written in that consumer's own directory. */
 function consumerScript(subpaths: readonly string[]): string {
-  return `const subpaths = ${JSON.stringify(subpaths)};
+  const specifiers = Object.fromEntries(subpaths.map((subpath) => [subpath, specifierOf(subpath)]));
+  return `const specifiers = ${JSON.stringify(specifiers)};
 const loaded = {};
-for (const subpath of subpaths) {
-  const specifier = subpath === "." ? "${PACKAGE_NAME}" : "${PACKAGE_NAME}/" + subpath.slice(2);
+for (const [subpath, specifier] of Object.entries(specifiers)) {
   loaded[subpath] = Object.keys(await import(specifier)).length;
 }
 const { jevThresholdFor } = await import("${PACKAGE_NAME}/judge");
-const question = { type: "noul", instructions: "Does the owner have to act?" };
+const question = ${JSON.stringify(SAMPLE_QUESTION)};
 process.stdout.write(JSON.stringify({
   bun: process.versions.bun ?? null,
   loaded,
   thresholds: {
     default: jevThresholdFor(question),
     critical: jevThresholdFor({ ...question, stakes: "critical" }),
-    override: jevThresholdFor({ ...question, stakes: "critical" }, 0.95),
+    override: jevThresholdFor({ ...question, stakes: "critical" }, ${THRESHOLD_OVERRIDE}),
   },
   pack: import.meta.resolve("${PACKAGE_NAME}/questions/agent-operations.json"),
   skill: import.meta.resolve("${PACKAGE_NAME}/skills/jev/SKILL.md"),
@@ -101,13 +117,41 @@ process.stdout.write(JSON.stringify({
 `;
 }
 
-describe.skipIf(missingTool !== undefined)("the packed package under plain Node", () => {
+/** A TypeScript consumer of every module subpath, compiled against the installed declarations. */
+function typesConsumer(subpaths: readonly string[]): string {
+  const modules = subpaths.map((subpath, index) => ({ name: `module${index}`, subpath }));
+  const imports = modules.map(
+    ({ name, subpath }) => `import type * as ${name} from "${specifierOf(subpath)}";`,
+  );
+  return `${imports.join("\n")}
+import { jevThresholdFor, type JevQuestion } from "${PACKAGE_NAME}/judge";
+import type { JevCliOptions } from "${PACKAGE_NAME}/jev-judge";
+
+export type Modules = [${modules.map(({ name }) => `typeof ${name}`).join(", ")}];
+const question: JevQuestion = ${JSON.stringify(SAMPLE_QUESTION)};
+export const threshold: number = jevThresholdFor(question, ${THRESHOLD_OVERRIDE});
+// jev-judge.d.ts reaches this type through a \`./judge.ts\` specifier: real, never \`any\`.
+// @ts-expect-error "not-a-stakes-word" is not a stakes level.
+export const stakes: JevCliOptions["stakes"] = "not-a-stakes-word";
+`;
+}
+
+describe.skipIf(tools === undefined)("the packed package under plain Node", () => {
   let workspace = "";
   let consumer = "";
   let installed = "";
   let entries: string[] = [];
   let manifest: Manifest = { exports: {}, bin: {} };
-  const judgeBin = () => join(installed, manifest.bin["jev-judge"] ?? "");
+
+  /** The `jev-judge` file the manifest names. A missing entry is a packaging bug, not a skip. */
+  function judgeBinTarget(): string {
+    const target = manifest.bin["jev-judge"];
+    if (target === undefined) throw new Error("the packed package.json has no jev-judge bin");
+    return join(installed, target);
+  }
+
+  /** The link npm made for `jev-judge`, which starts the file through its shebang. */
+  const binLink = (name: string) => join(consumer, "node_modules", ".bin", name);
 
   beforeAll(async () => {
     workspace = mkdtempSync(join(tmpdir(), "jev-node-package-"));
@@ -124,13 +168,14 @@ describe.skipIf(missingTool !== undefined)("the packed package under plain Node"
       .filter((entry) => entry.length > 0 && !entry.endsWith("/"))
       .map((entry) => entry.replace(/^package\//, ""));
 
-    // What `npm install` would leave behind, minus the network: the tarball under node_modules.
+    // A real install, offline: the tarball has no dependencies, and npm links the bins exactly as
+    // it does for any consumer.
     consumer = join(workspace, "consumer");
-    const scope = join(consumer, "node_modules", "@ogarciarevett");
-    mkdirSync(scope, { recursive: true });
-    await succeed(["tar", "-xzf", tarball, "-C", scope], workspace);
-    installed = join(scope, "jev-sdk");
-    renameSync(join(scope, "package"), installed);
+    mkdirSync(consumer);
+    writeFileSync(join(consumer, "package.json"), '{ "private": true, "type": "module" }\n');
+    const install = [npm, "install", "--offline", "--ignore-scripts", "--no-audit", "--no-fund"];
+    await succeed([...install, tarball], consumer);
+    installed = join(consumer, "node_modules", "@ogarciarevett", "jev-sdk");
     manifest = JSON.parse(readFileSync(join(installed, "package.json"), "utf8"));
   }, 120_000);
 
@@ -181,37 +226,62 @@ describe.skipIf(missingTool !== undefined)("the packed package under plain Node"
     expect(report.bun).toBeNull();
     expect(Object.keys(report.loaded).sort()).toEqual([...subpaths].sort());
     expect(Object.entries(report.loaded).filter(([, count]) => count === 0)).toEqual([]);
-    const question = { type: "noul", instructions: "Does the owner have to act?" } as const;
     expect(report.thresholds).toEqual({
-      default: jevThresholdFor(question),
+      default: jevThresholdFor(SAMPLE_QUESTION),
       critical: JEV_STAKES_THRESHOLDS.critical,
-      override: 0.95,
+      override: THRESHOLD_OVERRIDE,
     });
     expect(existsSync(fileURLToPath(report.pack))).toBe(true);
     expect(existsSync(fileURLToPath(report.skill))).toBe(true);
   });
 
-  test("installs every bin as built JavaScript with a node shebang", () => {
+  test.each(TYPESCRIPT_CONSUMERS)(
+    "type-checks a %s TypeScript consumer against the declarations",
+    async (name, moduleOptions) => {
+      writeFileSync(join(consumer, "types.ts"), typesConsumer(javascriptSubpaths(manifest)));
+      const config = join(consumer, `tsconfig.${name}.json`);
+      const compilerOptions = {
+        target: "ES2022",
+        strict: true,
+        noEmit: true,
+        skipLibCheck: false,
+        types: [],
+        ...moduleOptions,
+      };
+      writeFileSync(config, JSON.stringify({ compilerOptions, files: ["types.ts"] }));
+      expect(await run([node, typescript, "-p", config], consumer)).toMatchObject({ code: 0 });
+    },
+    30_000,
+  );
+
+  test("installs every bin as built JavaScript with a node shebang and a link", () => {
     expect(Object.keys(manifest.bin).length).toBeGreaterThan(0);
-    const broken = Object.entries(manifest.bin).filter(([, target]) => {
+    const broken = Object.entries(manifest.bin).filter(([name, target]) => {
       const path = join(installed, target);
-      return !existsSync(path) || !readFileSync(path, "utf8").startsWith(NODE_SHEBANG);
+      if (!existsSync(path) || !existsSync(binLink(name))) return true;
+      return !readFileSync(path, "utf8").startsWith(NODE_SHEBANG);
     });
     expect(broken).toEqual([]);
   });
 
-  test("runs a bin under node", async () => {
-    const result = await run([node, judgeBin(), "--help"], consumer);
+  test("runs a bin file under node", async () => {
+    const result = await run([node, judgeBinTarget(), "--help"], consumer);
     expect(result).toMatchObject({ code: 0 });
     expect(result.stdout).toContain("jev-judge --state");
   });
 
-  test("a bin under node does not load the consumer cwd .env", async () => {
+  test("runs the installed bin link through its shebang", async () => {
+    const result = await run([binLink("jev-judge"), "--help"], consumer);
+    expect(result).toMatchObject({ code: 0 });
+    expect(result.stdout).toContain("jev-judge --state");
+  });
+
+  test("an installed bin does not load the consumer cwd .env", async () => {
     const withEnvFile = join(workspace, "consumer-env");
     mkdirSync(withEnvFile, { recursive: true });
     writeFileSync(join(withEnvFile, ".env"), SYNTHETIC_ENV_FILE);
     const pack = join(installed, "questions", "agent-operations.json");
-    const argv = [node, judgeBin(), "--state", "-", "--questions", pack];
+    const argv = [binLink("jev-judge"), "--state", "-", "--questions", pack];
     const result = await run(argv, withEnvFile, "sample state");
     expect(result).toMatchObject({ code: 0 });
     const verdicts: Record<string, { reason?: string }> = JSON.parse(result.stdout).verdicts;
