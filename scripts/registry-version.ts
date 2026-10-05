@@ -11,11 +11,16 @@
 import { spawnSync } from "node:child_process";
 import { appendFileSync, readFileSync } from "node:fs";
 
+import { runsAsScript } from "./entry-point.ts";
+
 export type NpmViewResult = {
   /** The exit code, or null when npm did not run at all. */
   readonly status: number | null;
   readonly stdout: string;
+  readonly stderr: string;
 };
+
+type NpmJsonError = { readonly code: string; readonly summary?: unknown };
 
 export type RegistryVersionState = "published" | "absent";
 
@@ -37,6 +42,22 @@ function parsedJson(text: string): unknown {
   }
 }
 
+/**
+ * The `{ "error": { "code", ... } }` object npm prints for a failed `--json` command, either as the
+ * whole text or starting on its own line after npm's warnings. npm 11 writes it to stdout, but
+ * stderr is read too rather than depending on that. Anything else is no answer at all.
+ */
+function npmJsonError(text: string): NpmJsonError | undefined {
+  const lineStart = text.search(/^\{/m);
+  const candidates = [text, lineStart > 0 ? text.slice(lineStart) : ""];
+  for (const candidate of candidates) {
+    const error = (parsedJson(candidate.trim()) as { error?: unknown } | null | undefined)?.error;
+    const code = (error as { code?: unknown } | null | undefined)?.code;
+    if (typeof code === "string") return error as NpmJsonError;
+  }
+  return undefined;
+}
+
 /** Reads what `npm view <spec> version --json` answered for `version`. */
 export function registryVersionState(
   spec: string,
@@ -44,15 +65,14 @@ export function registryVersionState(
   result: NpmViewResult,
 ): RegistryVersionState {
   if (result.status === null) throw new RegistryCheckError(`npm view ${spec} did not run`);
-  const answer = parsedJson(result.stdout);
   if (result.status === 0) {
-    if (answer === version) return "published";
+    if (parsedJson(result.stdout) === version) return "published";
     throw new RegistryCheckError(
       `npm view ${spec} answered ${JSON.stringify(result.stdout.trim())}, not ${version}`,
     );
   }
-  const error = (answer as { error?: { code?: unknown; summary?: unknown } } | undefined)?.error;
-  if (typeof error?.code !== "string") {
+  const error = npmJsonError(result.stdout) ?? npmJsonError(result.stderr);
+  if (error === undefined) {
     throw new RegistryCheckError(
       `npm view ${spec} exited ${result.status} without a JSON error`,
     );
@@ -76,6 +96,7 @@ function main(argv: readonly string[], output: string | undefined): number {
     const state = registryVersionState(spec, version, {
       status: result.status,
       stdout: result.stdout ?? "",
+      stderr: result.stderr ?? "",
     });
     const published = state === "published";
     if (output !== undefined && output !== "") appendFileSync(output, `published=${published}\n`);
@@ -88,4 +109,6 @@ function main(argv: readonly string[], output: string | undefined): number {
   }
 }
 
-if (import.meta.main) process.exit(main(process.argv.slice(2), process.env.GITHUB_OUTPUT));
+if (runsAsScript(import.meta.main)) {
+  process.exit(main(process.argv.slice(2), process.env.GITHUB_OUTPUT));
+}

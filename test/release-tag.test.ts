@@ -131,9 +131,12 @@ describe.skipIf(tools === undefined)("the release-tag command under plain Node",
     expect(readFileSync(output, "utf8")).toBe("earlier=kept\ntag=rc\n");
   });
 
-  test("prints the dist-tag without GITHUB_OUTPUT", async () => {
-    const result = await command(["v1.2.0", "1.2.0", "false"]);
-    expect(result).toMatchObject({ code: 0, stdout: "latest\n" });
+  test.each([
+    ["unset", undefined],
+    ["empty", ""],
+  ])("prints the dist-tag and writes nothing when GITHUB_OUTPUT is %s", async (_case, output) => {
+    const result = await command(["v1.2.0", "1.2.0", "false"], output);
+    expect(result).toMatchObject({ code: 0, stdout: "latest\n", stderr: "" });
   });
 
   test("exits 1 with the reason and writes nothing when the release does not add up", async () => {
