@@ -35,7 +35,7 @@ const SHIPPED_FILES = ["package.json", "README.md", "LICENSE"];
 /** What it must never hold, whatever `files` says: local state, plans, tests, sources, keys. */
 const NEVER_SHIPPED = /^(\.local|odd|test|src)\/|(^|\/)\.env/;
 const STALE_BUILD_OUTPUT = "dist/stale-from-a-removed-source.js";
-const SYNTHETIC_ENV_FILE =`${["TYPESAFE_API_KEY", "synthetic-never-send"].join("=")}\n`;
+const SYNTHETIC_ENV_FILE = `${["TYPESAFE_API_KEY", "synthetic-never-send"].join("=")}\n`;
 /** The one question and the one override that both the consumers and the expectations use. */
 const SAMPLE_QUESTION = { type: "noul", instructions: "Does the owner have to act?" } as const;
 const THRESHOLD_OVERRIDE = 0.95;
