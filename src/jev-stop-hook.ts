@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 // A Claude Code Stop hook that asks Jev ONE question: can the assistant still make real progress on
-// the goal without the owner? It is NOT installed by this repository; `README.md` holds
-// the lines the owner adds to install it and the line to remove.
+// the goal without the owner? The package never installs it; a consumer that wants it registers
+// `jev-stop-hook` as a Stop hook in its own Claude Code settings.
 //
 // Exit 0 lets the assistant stop. Exit 2 blocks the stop and hands the reason back to the assistant,
 // which is the harness contract for a Stop hook. `no` and `undecided` both let the assistant stop,
