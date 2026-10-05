@@ -7,8 +7,9 @@ on:
 # Every job declares the permissions it needs and nothing more.
 permissions: {}
 
-# One release publishes at a time. A release published while another runs waits for it; GitHub
-# keeps one waiting run per group, so a third release cancels the waiting one, which is re-run.
+# One release publishes at a time: a release published while another runs waits for it. GitHub
+# keeps only one waiting run per group, so a third release cancels the waiting one, and that
+# cancelled release does not publish until someone re-runs its workflow by hand.
 concurrency:
   group: release-publish
   cancel-in-progress: false
@@ -24,12 +25,18 @@ jobs:
       contents: read
     outputs:
       dist-tag: ${{ steps.dist-tag.outputs.tag }}
+      sha: ${{ steps.commit.outputs.sha }}
     steps:
       # Third-party actions are pinned to commit SHAs; the release tag is kept as a comment.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.release.tag_name }}
           persist-credentials: false
+
+      # The publish jobs check out this exact commit, never the tag name again.
+      - name: Record the verified commit
+        id: commit
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -70,8 +77,21 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
+
+      # The bytes published are the verified commit either way; a moved tag would only make the
+      # GitHub release describe other code, so it stops the publish.
+      - name: Refuse a tag that moved after verification
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          VERIFIED: ${{ needs.verify.outputs.sha }}
+        run: |
+          current="$(git ls-remote origin "refs/tags/${TAG}" "refs/tags/${TAG}^{}" | tail -n 1 | cut -f 1)"
+          if [ "$current" != "$VERIFIED" ]; then
+            echo "::error::tag ${TAG} now points at ${current:-nothing}, not the verified ${VERIFIED}"
+            exit 1
+          fi
 
       # `npm publish` runs `prepack`, which builds with the TypeScript devDependency.
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
@@ -93,6 +113,14 @@ jobs:
             exit 1
           fi
 
+      # A re-run after a partial release skips a registry that already has the version. Only
+      # npm's E404 counts as absent; an auth or network error fails here (scripts/registry-version.ts).
+      - name: Check whether npm already has this version
+        id: registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: node scripts/registry-version.ts
+
       # How npm authenticates here (https://docs.npmjs.com/trusted-publishers, and npm CLI
       # lib/utils/oidc.js, https://github.com/npm/cli/blob/v11.19.0/lib/utils/oidc.js): in GitHub
       # Actions with `id-token: write`, npm first exchanges the workflow's OIDC token for a
@@ -104,10 +132,15 @@ jobs:
       # this public repository gets provenance automatically; `--provenance` also attests the
       # bootstrap publish.
       - name: Publish
+        if: steps.registry.outputs.published == 'false'
         env:
           DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: npm publish --access public --provenance --tag "$DIST_TAG"
+
+      - name: Skip a version npm already has
+        if: steps.registry.outputs.published == 'true'
+        run: echo "::notice title=npm::This version is already on npm; nothing was published."
 
   github-packages:
     name: Publish to GitHub Packages
@@ -121,8 +154,19 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.release.tag_name }}
+          ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
+
+      - name: Refuse a tag that moved after verification
+        env:
+          TAG: ${{ github.event.release.tag_name }}
+          VERIFIED: ${{ needs.verify.outputs.sha }}
+        run: |
+          current="$(git ls-remote origin "refs/tags/${TAG}" "refs/tags/${TAG}^{}" | tail -n 1 | cut -f 1)"
+          if [ "$current" != "$VERIFIED" ]; then
+            echo "::error::tag ${TAG} now points at ${current:-nothing}, not the verified ${VERIFIED}"
+            exit 1
+          fi
 
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
@@ -137,8 +181,20 @@ jobs:
           registry-url: https://npm.pkg.github.com
           scope: "@ogarciarevett"
 
+      # Same token as the publish, so the check sees what the publish would.
+      - name: Check whether GitHub Packages already has this version
+        id: registry
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node scripts/registry-version.ts
+
       - name: Publish
+        if: steps.registry.outputs.published == 'false'
         env:
           DIST_TAG: ${{ needs.verify.outputs.dist-tag }}
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: npm publish --tag "$DIST_TAG"
+
+      - name: Skip a version GitHub Packages already has
+        if: steps.registry.outputs.published == 'true'
+        run: echo "::notice title=GitHub Packages::This version is already there; nothing was published."

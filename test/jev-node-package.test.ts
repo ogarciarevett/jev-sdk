@@ -24,7 +24,7 @@ import { nodeTools } from "./node-tools.ts";
 const PACKAGE_NAME = "@ogarciarevett/jev-sdk";
 const NODE_SHEBANG = "#!/usr/bin/env node\n";
 const repositoryRoot = join(import.meta.dir, "..");
-const typescript = join(repositoryRoot, "node_modules", "typescript", "bin", "tsc");
+const tscBin = join(repositoryRoot, "node_modules", "typescript", "bin", "tsc");
 const tools = nodeTools(["node", "npm"], "the Node package smoke test");
 const node = tools?.node ?? "";
 const npm = tools?.npm ?? "";
@@ -249,7 +249,7 @@ describe.skipIf(tools === undefined)("the packed package under plain Node", () =
         ...moduleOptions,
       };
       writeFileSync(config, JSON.stringify({ compilerOptions, files: ["types.ts"] }));
-      expect(await run([node, typescript, "-p", config], consumer)).toMatchObject({ code: 0 });
+      expect(await run([node, tscBin, "-p", config], consumer)).toMatchObject({ code: 0 });
     },
     30_000,
   );
