@@ -23,12 +23,13 @@ Delivery: feature-branch-chain (the user's choice for Booker, reused): tracker `
 
 ## Tasks
 - [x] N1 Node build, license, package metadata, Node smoke test. Commit `1060462` on `feat/node-package-01-node-build`.
-- [x] N2 PR CI workflow, release workflow, dist-tag helper with tests. Commits `873ac08` and `16b92de` on `feat/node-package-02-ci-release`.
-- [ ] N3 README and RELEASING.md.
+- [x] N2 PR CI workflow, release workflow, dist-tag helper with tests. Commits `873ac08`, `16b92de`, and the review follow-up `03a5194` on `feat/node-package-02-ci-release`.
+- [x] N3 README and RELEASING.md. Commit `7506864` (cross-platform build clean) and the `docs:` commit that records this line, on `feat/node-package-03-docs`.
 
 ## Acceptance
 - [x] `node -e "import('@ogarciarevett/jev-sdk/judge')"` style smoke passes against the built package from a temp consumer, and one bin runs under Node. (`test/jev-node-package.test.ts`, N1)
-- [x] `bun test` and typecheck green. (at `1060462` and `16b92de`; recheck at each slice)
+- [x] `bun test` and typecheck green. (at `1060462`, `16b92de`, `03a5194`, and on `feat/node-package-03-docs`)
+- [x] Docs: README for a public npm install with channels, runtimes, the key, verdicts, commands, and library subpaths; RELEASING.md with channels, checks, refusals, partial-publish recovery, the bootstrap, dist-tags, and GitHub Packages installs. (N3)
 - [x] Release dry run computes the right dist-tag for stable, rc, beta, alpha, and rejects mismatches. (`test/release-tag.test.ts` and manual `node scripts/release-tag.ts` runs, N2)
 - [x] Packed tarball (`npm pack --dry-run` equivalent) contains no `.local`, `odd`, `test`, or secrets. (the smoke test asserts an allowlist and a denylist over `tar -tzf` of the real `npm pack` tarball)
 
@@ -49,10 +50,10 @@ Decisions:
 - `src/` is not shipped: declarations carry the types, the emitted JavaScript stays close to the source (types erased, comments kept), and no source maps point at missing files.
 - `tsconfig.build.json` loads Node types only (from `@types/node`, a dependency of `bun-types`), so a Bun global in `src/` fails the build. No new dependency was added.
 
-Open for later slices:
-- README install section still documents GitHub installs; a Git install no longer carries `dist/` (ignored, built at pack time). N3 switches it to the registry.
-- `build` uses `rm -rf`, fine under Bun's shell and POSIX `npm`, not under `npm` on Windows `cmd`.
-- `bun.lock` still names the workspace `@ogarciarevett/jev` (harmless; frozen install passes).
+Open items from N1, resolved in N3:
+- README install section documented GitHub installs, which no longer carry `dist/`: replaced by the registry install (N3 docs).
+- `build` used `rm -rf`: now `node -e "require('node:fs').rmSync(...)"` (`7506864`).
+- `bun.lock` still names the workspace `@ogarciarevett/jev`: left as is, because `bun install` reports no changes and does not regenerate it; harmless, and the frozen install passes.
 
 ### N2 (done, `873ac08`, `16b92de`)
 - `873ac08` test(package): `test/node-tools.ts` gates Node-only suites (skip without `node`/`npm`, a failing test under `JEV_REQUIRE_NODE_SMOKE=1`). The smoke test now installs the tarball with `npm install --offline`, runs `node_modules/.bin/jev-judge` through its shebang (also for the `.env` check), type-checks NodeNext and Bundler consumers of every subpath with `skipLibCheck: false` (a `@ts-expect-error` proves the types are real), defines the sample question and the 0.95 override once, and names a missing `jev-judge` bin.
@@ -62,6 +63,19 @@ Open for later slices:
 - Flag end to end: with `node`/`npm` off PATH, the smoke file skips 12 and exits 0; with the flag it fails 1 and exits 1.
 - Release tag under Node: `v1.2.0 1.2.0 false` latest; `v1.2.0-rc.1 … true` rc; `-beta.2` beta; `-alpha.3` alpha; tag mismatch, stable-marked-pre-release, rc-not-marked, and `1.2.0-next.1` exit 1 with the reason; `GITHUB_OUTPUT` gets `tag=rc`.
 - gitleaks `git` (full history): no leaks (the fixture fingerprint is ignored). `dir`: only the ignored `.local/review-status.json`.
+- Review: approved by the native review (4 lenses), with follow-ups done in `03a5194`.
+
+### N2 review follow-up (done, `03a5194`)
+- `verify` outputs the commit it checked out; both publish jobs check out that SHA and stop if the tag now resolves elsewhere (`git ls-remote`, lightweight and annotated tags; simulated locally: unchanged, annotated, moved, and missing tags).
+- `scripts/registry-version.ts` (+ tests with a fake `npm` on PATH) runs `npm view <name>@<version> version --json` with the job's token: exit 0 with that version means published; npm's `E404` (no package, or no such version) means absent; E401, E403, network codes, non-JSON, or a mismatched answer exit 1. Each publish job skips with a notice when the version exists, so "Re-run all jobs" is safe. Live check: `@ogarciarevett/jev-sdk@0.1.0` not published yet, `typescript@5.9.3` already published.
+- The concurrency comment says a cancelled waiting release must be re-run by hand; `nodeTools` takes injectable hooks with tests for the failure and skip paths (RED: 3 fail before the hooks existed); `typescript` renamed `tscBin`.
+- Checks: `JEV_REQUIRE_NODE_SMOKE=1 bun test` 387 pass, 0 fail, 17 files (Node 26.9 and Node 22.18.0); `bunx tsc --noEmit` clean; `bun run build` clean; `actionlint` 0 errors; gitleaks `git` no leaks.
+
+### N3 (done, `7506864` and the `docs:` commit)
+- `7506864` build: `dist` is cleared with Node's `fs.rmSync` instead of `rm -rf`. The smoke test plants a stale `dist` file before building and checks that neither the tree nor the tarball keeps it; with the clean removed (mutation) that test failed, and `bun run build` works even with no `node` on PATH.
+- README rewritten for the public npm package: install (npm, pnpm, Bun), dist-tags, runtimes, the key and `.env` behavior (Node loads none unless asked; Bun does unless `--no-env-file`), verdict fields and every `undecided` reason, the command table, library subpaths, packs and skill, a neutral "migrating from a source checkout" paragraph, development. The Git/private install and the consumer-specific follow-up and extraction sections are gone. Badges: CI workflow, npm version (resolves after the first publish), license.
+- RELEASING.md: quick path, the channel table, what each job checks, refusals and their fixes, partial-publish recovery, the bootstrap, dist-tag moves and deprecation, GitHub Packages installs (classic token with `read:packages`).
+- `src/jev-stop-hook.ts` header no longer points at README lines that never existed.
 - Review: tier not assessed by the writer; pending the parent.
 
 Decisions:
@@ -71,8 +85,10 @@ Decisions:
 - `.gitleaksignore` lists exact fingerprints (the commit and the working-tree file) for the fake JWT fixture, so the full-history scan passes without weakening any rule; a moved or new match is reported again.
 - Concurrency group `release-publish`, not cancelled in progress. GitHub keeps one waiting run per group, so a third quick release cancels the waiting one, which then needs a re-run.
 
-## User steps (after merge)
+## User steps (after merge; full detail in RELEASING.md)
 1. npm account `ogarciarevett` (scope owner).
-2. First publish: add a short-lived granular npm token as the repository secret `NPM_TOKEN`, publish the GitHub release (tag `v0.1.0`, not a pre-release), then configure the trusted publisher on npmjs.com (owner `ogarciarevett`, repository `jev-sdk`, workflow `release.yml`, no environment), delete the secret, and revoke the token.
+2. First publish: create a granular npm token (Read and write, the `@ogarciarevett` scope, shortest expiration, bypass 2FA), store it as the repository secret `NPM_TOKEN`, and publish the GitHub release `v0.1.0` (not a pre-release).
+3. Configure the trusted publisher on npmjs.com (owner `ogarciarevett`, repository `jev-sdk`, workflow `release.yml`, no environment), delete the secret, and revoke the token.
+4. Recommended: set the package's publishing access to "Require two-factor authentication and disallow tokens".
 
-Next step: N3 on `feat/node-package-03-docs` (README for the public npm install, RELEASING.md with the bootstrap above).
+Next step: merge the chain (`-01-node-build`, `-02-ci-release`, `-03-docs`) into `main`, then cut the first release with the bootstrap above.
