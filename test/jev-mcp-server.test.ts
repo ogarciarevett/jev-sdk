@@ -6,7 +6,7 @@ import {
   JEV_MCP_SERVER_NAME,
   JEV_MCP_TOOL,
   jevMcpResponse,
-} from "../src/jev-mcp-server";
+} from "../src/jev-mcp-server.ts";
 
 const repositoryRoot = join(import.meta.dir, "..");
 const server = join(repositoryRoot, "src", "jev-mcp-server.ts");

@@ -12,7 +12,7 @@ import {
   jevLogTally,
   jevOutcomeLine,
   readJevLog,
-} from "../src/decision-log";
+} from "../src/decision-log.ts";
 
 const workspace = mkdtempSync(join(tmpdir(), "jev-log-"));
 afterAll(() => {

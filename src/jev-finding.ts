@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // Judges one review finding before anybody edits anything.
 //
 //   jev-finding --comment <review comment id> --log
@@ -10,13 +10,13 @@
 import { execFileSync } from "node:child_process";
 import { join } from "node:path";
 
-import { jevNumberFlag, jevTextFileAt, parseJevFlags, runJevCli } from "./cli";
+import { jevNumberFlag, jevTextFileAt, parseJevFlags, runJevCli } from "./cli.ts";
 import {
   appendJevDecision,
   JEV_DECISION_LOG_DIRECTORY,
   jevDecisionLine,
   jevLogDate,
-} from "./decision-log";
+} from "./decision-log.ts";
 import {
   JEV_CITED_FILE_MAX_BYTES,
   JEV_FINDING_ROUTES,
@@ -30,9 +30,9 @@ import {
   jevGitSaysPathIsAbsent,
   jevReviewCommentPath,
   jevSafeCitationPath,
-} from "./finding";
-import { jevQuestionsFrom } from "./jev-judge";
-import { type JevJudgeRequest, JevUsageError, jevDependenciesFrom, judge } from "./judge";
+} from "./finding.ts";
+import { jevQuestionsFrom } from "./jev-judge.ts";
+import { type JevJudgeRequest, JevUsageError, jevDependenciesFrom, judge } from "./judge.ts";
 
 /** Lines either side of the citation, so the judge sees what the cited lines sit in. */
 export const JEV_FINDING_CONTEXT_LINES = 12;

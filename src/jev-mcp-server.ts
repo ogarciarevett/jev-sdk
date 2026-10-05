@@ -1,7 +1,7 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // Dependency-free MCP stdio server exposing one jev_judge tool.
-import { type JevJudgeRequest, JevUsageError, jevDependenciesFrom, judge } from "./judge";
-import { forEachLine } from "./stdin";
+import { type JevJudgeRequest, JevUsageError, jevDependenciesFrom, judge } from "./judge.ts";
+import { forEachLine } from "./stdin.ts";
 
 export const JEV_MCP_PROTOCOL_VERSION = "2025-06-18";
 export const JEV_MCP_SERVER_NAME = "jev-judge";

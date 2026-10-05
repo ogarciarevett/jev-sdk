@@ -2,7 +2,7 @@
 // that drift apart. A caller mistake is a `JevUsageError`, which every command turns into exit 2.
 import { readFileSync } from "node:fs";
 
-import { JevUsageError } from "./judge";
+import { JevUsageError } from "./judge.ts";
 
 export type JevFlagSpec = {
   /** Flags that consume the next argument. */

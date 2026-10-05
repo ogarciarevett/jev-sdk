@@ -1,8 +1,8 @@
 import { describe, expect, test } from "bun:test";
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { jevQuestionsFrom } from "../src/jev-judge";
-import { maskedJevRequest } from "../src/judge";
+import { jevQuestionsFrom } from "../src/jev-judge.ts";
+import { maskedJevRequest } from "../src/judge.ts";
 
 const directory = join(import.meta.dir, "..", "questions");
 

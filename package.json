@@ -1,27 +1,51 @@
 {
   "name": "@ogarciarevett/jev-sdk",
   "version": "0.1.0",
-  "private": true,
+  "description": "Typed Jev decision support for repository agents: judgments, option scoring, finding routing, decision logs, an MCP server, and a stop hook.",
+  "license": "Apache-2.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ogarciarevett/jev-sdk.git"
+  },
+  "homepage": "https://github.com/ogarciarevett/jev-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/ogarciarevett/jev-sdk/issues"
+  },
+  "keywords": [
+    "jev",
+    "typesafe",
+    "decision-support",
+    "ai-agents",
+    "mcp",
+    "claude-code",
+    "cli"
+  ],
   "type": "module",
   "packageManager": "bun@1.3.14",
+  "engines": {
+    "node": "^22.18.0 || >=24.2.0"
+  },
   "files": [
-    "src",
-    "skills",
+    "dist",
     "questions",
-    "README.md"
+    "skills",
+    "README.md",
+    "LICENSE"
   ],
   "bin": {
-    "jev-judge": "src/jev-judge.ts",
-    "jev-score-options": "src/jev-score-options.ts",
-    "jev-finding": "src/jev-finding.ts",
-    "jev-outcome": "src/jev-outcome.ts",
-    "jev-report": "src/jev-report.ts",
-    "jev-capabilities": "src/jev-capabilities.ts",
-    "jev-mcp-server": "src/jev-mcp-server.ts",
-    "jev-stop-hook": "src/jev-stop-hook.ts",
-    "jev-smoke": "src/jev-smoke.ts"
+    "jev-judge": "dist/jev-judge.js",
+    "jev-score-options": "dist/jev-score-options.js",
+    "jev-finding": "dist/jev-finding.js",
+    "jev-outcome": "dist/jev-outcome.js",
+    "jev-report": "dist/jev-report.js",
+    "jev-capabilities": "dist/jev-capabilities.js",
+    "jev-mcp-server": "dist/jev-mcp-server.js",
+    "jev-stop-hook": "dist/jev-stop-hook.js",
+    "jev-smoke": "dist/jev-smoke.js"
   },
   "scripts": {
+    "build": "rm -rf dist && tsc -p tsconfig.build.json",
+    "prepack": "npm run build",
     "test": "bun test",
     "typecheck": "tsc --noEmit"
   },
@@ -30,23 +54,71 @@
     "typescript": "^5.9.0"
   },
   "exports": {
-    ".": "./src/judge.ts",
-    "./judge": "./src/judge.ts",
-    "./mask": "./src/mask.ts",
-    "./decision-log": "./src/decision-log.ts",
-    "./finding": "./src/finding.ts",
-    "./capabilities": "./src/capabilities.ts",
-    "./score-options": "./src/score-options.ts",
+    ".": {
+      "types": "./dist/judge.d.ts",
+      "default": "./dist/judge.js"
+    },
+    "./judge": {
+      "types": "./dist/judge.d.ts",
+      "default": "./dist/judge.js"
+    },
+    "./mask": {
+      "types": "./dist/mask.d.ts",
+      "default": "./dist/mask.js"
+    },
+    "./decision-log": {
+      "types": "./dist/decision-log.d.ts",
+      "default": "./dist/decision-log.js"
+    },
+    "./finding": {
+      "types": "./dist/finding.d.ts",
+      "default": "./dist/finding.js"
+    },
+    "./capabilities": {
+      "types": "./dist/capabilities.d.ts",
+      "default": "./dist/capabilities.js"
+    },
+    "./score-options": {
+      "types": "./dist/score-options.d.ts",
+      "default": "./dist/score-options.js"
+    },
     "./questions/*": "./questions/*",
     "./skills/jev/*": "./skills/jev/*",
-    "./jev-judge": "./src/jev-judge.ts",
-    "./jev-score-options": "./src/jev-score-options.ts",
-    "./jev-finding": "./src/jev-finding.ts",
-    "./jev-outcome": "./src/jev-outcome.ts",
-    "./jev-report": "./src/jev-report.ts",
-    "./jev-capabilities": "./src/jev-capabilities.ts",
-    "./jev-mcp-server": "./src/jev-mcp-server.ts",
-    "./jev-stop-hook": "./src/jev-stop-hook.ts",
-    "./jev-smoke": "./src/jev-smoke.ts"
+    "./jev-judge": {
+      "types": "./dist/jev-judge.d.ts",
+      "default": "./dist/jev-judge.js"
+    },
+    "./jev-score-options": {
+      "types": "./dist/jev-score-options.d.ts",
+      "default": "./dist/jev-score-options.js"
+    },
+    "./jev-finding": {
+      "types": "./dist/jev-finding.d.ts",
+      "default": "./dist/jev-finding.js"
+    },
+    "./jev-outcome": {
+      "types": "./dist/jev-outcome.d.ts",
+      "default": "./dist/jev-outcome.js"
+    },
+    "./jev-report": {
+      "types": "./dist/jev-report.d.ts",
+      "default": "./dist/jev-report.js"
+    },
+    "./jev-capabilities": {
+      "types": "./dist/jev-capabilities.d.ts",
+      "default": "./dist/jev-capabilities.js"
+    },
+    "./jev-mcp-server": {
+      "types": "./dist/jev-mcp-server.d.ts",
+      "default": "./dist/jev-mcp-server.js"
+    },
+    "./jev-stop-hook": {
+      "types": "./dist/jev-stop-hook.d.ts",
+      "default": "./dist/jev-stop-hook.js"
+    },
+    "./jev-smoke": {
+      "types": "./dist/jev-smoke.d.ts",
+      "default": "./dist/jev-smoke.js"
+    }
   }
 }

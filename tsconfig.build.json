@@ -1,0 +1,18 @@
+// The published build: Node ES modules and declarations from `src/` into `dist/`. Relative `.ts`
+// imports become `.js`, and only Node types load, so a Bun global in `src/` fails here, not in a
+// consumer. tsc keeps each entry point's `#!/usr/bin/env node` line, so the bins run under plain
+// Node, which loads no `.env` file unless asked: the promise the old `bun --no-env-file` line made.
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "noEmit": false,
+    "rewriteRelativeImportExtensions": true,
+    "declaration": true,
+    "rootDir": "src",
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts"]
+}

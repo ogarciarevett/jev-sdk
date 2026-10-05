@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // The optional live smoke. TypeSafe publishes no latency figure, so this measures ours.
 //
 //   TYPESAFE_API_KEY=<key> jev-smoke [--calls 5]
@@ -6,7 +6,7 @@
 // It sends one small request per call, sequentially, and prints the model version, every verdict and
 // the latency summary. Without the key it refuses and exits 2 rather than printing a number it did
 // not measure.
-import { JEV_API_KEY_VARIABLE, type JevQuestions, jevDependenciesFrom, judge } from "./judge";
+import { JEV_API_KEY_VARIABLE, type JevQuestions, jevDependenciesFrom, judge } from "./judge.ts";
 
 export const JEV_SMOKE_DEFAULT_CALLS = 5;
 

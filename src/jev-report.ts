@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // What the decision log says about each question, so a bar is tuned on counted results.
 //
 //   jev-report [--directory <path>] [--json]
@@ -8,13 +8,13 @@
 // bar or the wrong options; a question that decides and is wrong has the wrong criteria.
 import { join } from "node:path";
 
-import { parseJevFlags, runJevCli } from "./cli";
+import { parseJevFlags, runJevCli } from "./cli.ts";
 import {
   JEV_DECISION_LOG_DIRECTORY,
   type JevQuestionTally,
   jevLogTally,
   readJevLog,
-} from "./decision-log";
+} from "./decision-log.ts";
 
 export const JEV_REPORT_USAGE = `Count what the Jev decision log holds, per question id.
 

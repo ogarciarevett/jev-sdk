@@ -8,8 +8,8 @@ import {
   JEV_DECISION_LOG_DIRECTORY,
   jevDecisionLine,
   parseJevArguments,
-} from "../src/jev-judge";
-import { JevUsageError } from "../src/judge";
+} from "../src/jev-judge.ts";
+import { JevUsageError } from "../src/judge.ts";
 
 const repositoryRoot = join(import.meta.dir, "..");
 const cli = join(repositoryRoot, "src", "jev-judge.ts");

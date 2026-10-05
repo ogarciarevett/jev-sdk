@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // Which skills, MCP servers and CLIs a unit of work should load, in two calls.
 //
 //   jev-capabilities --unit <file or -> [--extras <file.json>] [--log]
@@ -20,7 +20,7 @@ import {
   jevRosterFrom,
   jevShortlistFrom,
   jevWideQuestions,
-} from "./capabilities";
+} from "./capabilities.ts";
 import {
   jevFractionFlag,
   jevJsonFileAt,
@@ -28,16 +28,16 @@ import {
   jevTextFileAt,
   parseJevFlags,
   runJevCli,
-} from "./cli";
+} from "./cli.ts";
 import {
   appendJevDecision,
   JEV_DECISION_LOG_DIRECTORY,
   jevDecisionLine,
   jevLogDate,
-} from "./decision-log";
-import { jevStateFrom } from "./jev-judge";
-import { type JevJudgeRequest, jevDependenciesFrom, judge } from "./judge";
-import { readAllText } from "./stdin";
+} from "./decision-log.ts";
+import { jevStateFrom } from "./jev-judge.ts";
+import { type JevJudgeRequest, jevDependenciesFrom, judge } from "./judge.ts";
+import { readAllText } from "./stdin.ts";
 
 /** Where this repository keeps its skills. */
 export const JEV_SKILLS_DIRECTORY = ".agents/skills";

@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { jevDecisionLine } from "../src/decision-log";
+import { jevDecisionLine } from "../src/decision-log.ts";
 
 import {
   JEV_ENDPOINT,
@@ -8,7 +8,7 @@ import {
   type JevJudgeRequest,
   JevUsageError,
   judge,
-} from "../src/judge";
+} from "../src/judge.ts";
 
 type Call = { url: string; init: RequestInit };
 

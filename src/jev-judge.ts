@@ -1,4 +1,4 @@
-#!/usr/bin/env -S bun --no-env-file
+#!/usr/bin/env node
 // The command line in front of `judge()`, for a human and for another agent.
 //
 //   jev-judge --state <file or -> --questions <file.json> [--threshold 0.8] [--log]
@@ -7,13 +7,13 @@
 // the command was wrong, never that the judge was unsure.
 import { join } from "node:path";
 
-import { type JevFlags, jevNumberFlag, jevTextFileAt, parseJevFlags, runJevCli } from "./cli";
+import { type JevFlags, jevNumberFlag, jevTextFileAt, parseJevFlags, runJevCli } from "./cli.ts";
 import {
   appendJevDecision,
   JEV_DECISION_LOG_DIRECTORY,
   jevDecisionLine,
   jevLogDate,
-} from "./decision-log";
+} from "./decision-log.ts";
 import {
   JEV_API_KEY_VARIABLE,
   JEV_DEFAULT_THRESHOLD,
@@ -25,9 +25,9 @@ import {
   JevUsageError,
   jevDependenciesFrom,
   judge,
-} from "./judge";
-import type { JevJsonValue } from "./mask";
-import { readAllText } from "./stdin";
+} from "./judge.ts";
+import type { JevJsonValue } from "./mask.ts";
+import { readAllText } from "./stdin.ts";
 
 // The log itself lives in `decision-log.ts`, which the outcome and report commands share. These
 // re-exports keep the command line's own surface unchanged for anything that already imports it.
@@ -35,7 +35,7 @@ export {
   appendJevDecision,
   JEV_DECISION_LOG_DIRECTORY,
   jevDecisionLine,
-} from "./decision-log";
+} from "./decision-log.ts";
 
 export const JEV_DEFAULT_QUESTIONS = "questions/agent-operations.json";
 

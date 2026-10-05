@@ -18,8 +18,8 @@ import {
   jevRosterFrom,
   jevShortlistFrom,
   jevWideQuestions,
-} from "../src/capabilities";
-import { JevUsageError, type JevVerdict, maskedJevRequest } from "../src/judge";
+} from "../src/capabilities.ts";
+import { JevUsageError, type JevVerdict, maskedJevRequest } from "../src/judge.ts";
 
 const workspace = mkdtempSync(join(tmpdir(), "jev-caps-"));
 afterAll(() => {

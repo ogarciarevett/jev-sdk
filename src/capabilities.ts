@@ -12,8 +12,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { JevUsageError, type JevVerdict } from "./judge";
-import type { JevQuestions } from "./mask";
+import { JevUsageError, type JevVerdict } from "./judge.ts";
+import type { JevQuestions } from "./mask.ts";
 
 /** How many candidates pass one hands to pass two. */
 export const JEV_CAPABILITY_SHORTLIST = 3;

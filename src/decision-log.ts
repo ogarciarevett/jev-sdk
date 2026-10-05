@@ -9,8 +9,8 @@
 import { appendFileSync, mkdirSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-import { type JevJudgeRequest, type JevJudgeResult, maskedJevRequest } from "./judge";
-import { type JevQuestion, type JevStakes, maskedDigest, maskJevText } from "./mask";
+import { type JevJudgeRequest, type JevJudgeResult, maskedJevRequest } from "./judge.ts";
+import { type JevQuestion, type JevStakes, maskedDigest, maskJevText } from "./mask.ts";
 
 /** Consumer-relative default; the consumer must ignore `.local/` in Git. */
 export const JEV_DECISION_LOG_DIRECTORY = ".local/jev-decisions";

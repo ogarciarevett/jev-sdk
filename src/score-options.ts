@@ -5,8 +5,8 @@
 // time, because a criterion that asks six things at once has no concentrated answer to give. The
 // same judgment split into one question per dimension per option answers each one on its own, and
 // the weighting that used to hide inside the criterion is visible here instead.
-import { JevUsageError, type JevVerdict } from "./judge";
-import type { JevJsonValue, JevQuestion, JevQuestions, JevStakes } from "./mask";
+import { JevUsageError, type JevVerdict } from "./judge.ts";
+import type { JevJsonValue, JevQuestion, JevQuestions, JevStakes } from "./mask.ts";
 
 /** How far ahead the leader has to be before this tool calls it a winner rather than a tie. */
 export const JEV_SCORE_DEFAULT_MARGIN = 0.05;
