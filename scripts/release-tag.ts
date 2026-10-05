@@ -9,6 +9,8 @@
 // that does not add up exits 1 with the reason; a missing argument exits 2.
 import { appendFileSync } from "node:fs";
 
+import { runsAsScript } from "./entry-point.ts";
+
 export type ReleaseChannel = "alpha" | "beta" | "rc";
 export type ReleaseDistTag = "latest" | ReleaseChannel;
 
@@ -103,4 +105,4 @@ function main(
   }
 }
 
-if (import.meta.main) process.exit(main(process.argv.slice(2), process.env));
+if (runsAsScript(import.meta.main)) process.exit(main(process.argv.slice(2), process.env));

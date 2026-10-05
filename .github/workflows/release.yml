@@ -81,7 +81,9 @@ jobs:
           persist-credentials: false
 
       # The bytes published are the verified commit either way; a moved tag would only make the
-      # GitHub release describe other code, so it stops the publish.
+      # GitHub release describe other code, so it stops the publish. `git ls-remote` lists a
+      # lightweight tag once, as its commit, and an annotated tag twice, the tag object and then
+      # its peeled commit (`^{}`), so the last line is always the commit.
       - name: Refuse a tag that moved after verification
         env:
           TAG: ${{ github.event.release.tag_name }}
@@ -121,6 +123,16 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: node scripts/registry-version.ts
 
+      # Publish and skip both key on an exact `true` or `false`; anything else, such as a missing
+      # output, would otherwise run neither and let the job pass having published nothing.
+      - name: Refuse an unclear registry answer
+        if: steps.registry.outputs.published != 'true' && steps.registry.outputs.published != 'false'
+        env:
+          PUBLISHED: ${{ steps.registry.outputs.published }}
+        run: |
+          echo "::error::the npm registry check gave no clear answer (published='${PUBLISHED}'); nothing was published"
+          exit 1
+
       # How npm authenticates here (https://docs.npmjs.com/trusted-publishers, and npm CLI
       # lib/utils/oidc.js, https://github.com/npm/cli/blob/v11.19.0/lib/utils/oidc.js): in GitHub
       # Actions with `id-token: write`, npm first exchanges the workflow's OIDC token for a
@@ -157,6 +169,7 @@ jobs:
           ref: ${{ needs.verify.outputs.sha }}
           persist-credentials: false
 
+      # The last `ls-remote` line is the commit for a lightweight or an annotated tag (see the npm job).
       - name: Refuse a tag that moved after verification
         env:
           TAG: ${{ github.event.release.tag_name }}
@@ -187,6 +200,14 @@ jobs:
         env:
           NODE_AUTH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node scripts/registry-version.ts
+
+      - name: Refuse an unclear registry answer
+        if: steps.registry.outputs.published != 'true' && steps.registry.outputs.published != 'false'
+        env:
+          PUBLISHED: ${{ steps.registry.outputs.published }}
+        run: |
+          echo "::error::the GitHub Packages check gave no clear answer (published='${PUBLISHED}'); nothing was published"
+          exit 1
 
       - name: Publish
         if: steps.registry.outputs.published == 'false'
