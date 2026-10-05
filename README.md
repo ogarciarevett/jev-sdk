@@ -71,4 +71,4 @@ bunx tsc --noEmit
 bun run build
 ```
 
-`bun test` includes a smoke test that builds and packs the package, unpacks it into a temporary consumer, and imports and runs it with plain `node`; it needs `node` and `npm` on `PATH` and is skipped without them.
+`bun test` includes a smoke test that builds and packs the package, installs it into a temporary consumer, and imports, type-checks, and runs it with plain `node`. It needs `node` and `npm` on `PATH` and is skipped without them, unless `JEV_REQUIRE_NODE_SMOKE=1` (set in CI) turns the skip into a failure.
