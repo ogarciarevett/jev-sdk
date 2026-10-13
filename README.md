@@ -1,11 +1,20 @@
-<p align="center">
-  <img src=".github/assets/banner.png" alt="jev-sdk: typed decision support for repository agents" width="100%">
-</p>
+<div align="center">
 
-# Jev SDK: typed decision support for repository agents
+<img src=".github/assets/jev-sdk.svg" width="180" alt="jev-sdk: a shield with a branching verdict path">
 
+# jev-sdk
+
+**Typed decision support with secrets masked before sending.**
+
+[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-green.svg)](LICENSE)
+[![TypeScript](https://img.shields.io/badge/TypeScript-3178C6.svg)](#install)
 [![CI](https://github.com/ogarciarevett/jev-sdk/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/ogarciarevett/jev-sdk/actions/workflows/ci.yml)
-[![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue)](LICENSE)
+
+Works with **Node.js** · **Bun** · **MCP**
+
+</div>
+
+---
 
 Ask Jev, the TypeSafe decision service, typed questions about a piece of state and get one verdict per question. The SDK masks secrets before anything leaves the machine, applies a bar per question by its stakes, retries rate limits, and reports how far ahead the winning answer was. It ships a library, command-line tools, an MCP server, and a stop hook.
 

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+<title id="title">jev-sdk logo</title>
+<desc id="desc">A shield with a branching verdict path.</desc>
+<g stroke="#283C46" stroke-width="8" stroke-linecap="round" stroke-linejoin="round">
+<path d="m128 29 79 29v76c0 47-39 78-79 96-40-18-79-49-79-96V58Z" fill="#8DA9EF"/><path d="M128 179v-52M85 86v22c0 12 11 19 43 19s43-7 43-19V86" fill="none"/><circle cx="85" cy="83" r="17" fill="#EFF3F8"/><circle cx="171" cy="83" r="17" fill="#EFF3F8"/><circle cx="128" cy="177" r="20" fill="#EFCF74"/><path d="m118 177 7 7 14-16" fill="none" stroke-width="6"/>
+</g>
+</svg>
