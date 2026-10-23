@@ -88,8 +88,9 @@ Each question id in the result maps to a verdict:
 
 | Field | Meaning |
 | --- | --- |
-| `verdict` | `yes` or `no` for a `noul` question, the chosen option for a `choice`, the level for a `score`, or `undecided`. |
-| `value`, `valueKind` | The probability (`noul`) or confidence (`choice`, `score`) behind the answer. |
+| `verdict` | `yes` or `no` for a `noul` question, the chosen option for a `choice`, the level for a `score`, `box` for a `box`, or `undecided`. |
+| `value`, `valueKind` | The probability (`noul`) or confidence (`choice`, `score`, `box`) behind the answer. |
+| `box` | Only for a `box` question: the `top`, `bottom`, `left` and `right` edges as fractions of the image. |
 | `threshold` | The bar the answer had to clear: an explicit override if the call set one, else the question's `stakes` (`passive` 0.6, `design` 0.75, `critical` 0.9), else 0.8. |
 | `margin` | How far the leading answer is ahead of the next one. |
 | `leaning` | The answer the service gave, even when it did not clear the bar. |
@@ -156,6 +157,42 @@ console.log(result.verdicts.needs_owner?.verdict);
 | `/decision-log` | Reading and writing the decision log. |
 | `/jev-judge`, `/jev-finding`, and the other command names | Each command's module, importable without running it. |
 | `/questions/*`, `/skills/jev/*` | The question pack templates and the agent skill, as files. |
+
+### Images and Box (experimental)
+
+TypeSafe's image models are opt-in and "dreamer-ready": fine for prototypes, not yet for production,
+and the format can change. Pass PNG or JPEG bytes in `images`, keyed by a reference string, and write
+that reference where the image belongs (state, instructions or criteria). The SDK sends the
+`TypeSafe-Danger-Zone-Images: true` header for you. A `box` question returns where something is; it
+needs Jev 1.14.
+
+```ts
+import { readFileSync } from "node:fs";
+import { JEV_BOX_MODEL, judge, jevDependenciesFrom } from "@ogarciarevett/jev-sdk/judge";
+
+const photo = "6e1d0b7c-kitchen"; // a reference that cannot occur in your text by accident
+const result = await judge(
+  {
+    state: { photo },
+    questions: {
+      mug_visible: { type: "noul", instructions: "Is there a coffee mug in `photo`?" },
+      mug: { type: "box", instructions: "the coffee mug in `photo`" },
+    },
+    images: { [photo]: readFileSync("kitchen.jpg") },
+    model: JEV_BOX_MODEL,
+    timeoutMs: 30_000,
+  },
+  jevDependenciesFrom(process.env),
+);
+console.log(result.verdicts.mug?.box); // { top, bottom, left, right } as fractions
+```
+
+A box answer is always a box, even when the target is absent, so pair it with a `noul` as above.
+Image bytes are not text, so they are sent as they are; everything else is still masked, and the
+decision log never holds the bytes. The service rejects an image with a side under 280 or over 1568
+pixels; such a call ends `undecided` with `http_client_error`. `longContext: true` sends
+`TypeSafe-Danger-Zone-Long-Context: true` and raises the state budget to 786,000 characters. Docs:
+https://docs.typesafe.ai/images
 
 ## Question packs and the agent skill
 
