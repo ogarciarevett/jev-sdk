@@ -23,6 +23,8 @@ export {
 
 export const JEV_ENDPOINT = "https://api.typesafe.ai/v1/systemone";
 export const JEV_MODEL = "jev-latest";
+/** Box questions need Jev 1.14 or later; send this (or `jev-preview`) as the model for them. */
+export const JEV_BOX_MODEL = "jev-1.14.0";
 export const JEV_API_KEY_VARIABLE = "TYPESAFE_API_KEY";
 export const JEV_DEFAULT_THRESHOLD = 0.8;
 /**
@@ -39,6 +41,12 @@ export const JEV_DEFAULT_TIMEOUT_MS = 10_000;
 export const JEV_MAX_TIMEOUT_MS = 120_000;
 /** The documented budget is 32k tokens for the state plus the longest question. */
 export const JEV_MAX_STATE_CHARACTERS = 96_000;
+/** The long context header raises the budget to 262k tokens, at the same three characters a token. */
+export const JEV_LONG_CONTEXT_MAX_STATE_CHARACTERS = 786_000;
+/** The service refuses a body over 32 MiB. Only the image data is counted against it here. */
+export const JEV_MAX_IMAGE_BYTES = 32 * 1024 * 1024;
+export const JEV_IMAGES_HEADER = "typesafe-danger-zone-images";
+export const JEV_LONG_CONTEXT_HEADER = "typesafe-danger-zone-long-context";
 export const JEV_MAX_RATE_LIMIT_RETRIES = 2;
 /** The least time worth spending on another attempt once a rate limit wait has been paid for. */
 export const JEV_MIN_ATTEMPT_MS = 1_000;
@@ -87,6 +95,23 @@ export type JevVerdict = {
    * For a `noul` it is the distance from the coin flip.
    */
   readonly margin?: number;
+  /** A `box` answer's edges as fractions of the image size. */
+  readonly box?: JevBox;
+};
+
+/** Where a `box` question found its target, each edge a fraction of the image's width or height. */
+export type JevBox = {
+  readonly top: number;
+  readonly bottom: number;
+  readonly left: number;
+  readonly right: number;
+};
+
+/** One image as the request sends it. Image bytes are not text, so they are not masked. */
+export type JevImageAsset = {
+  readonly type: "image";
+  readonly format: "png" | "jpg";
+  readonly data_base64: string;
 };
 
 export type JevJudgeRequest = {
@@ -94,6 +119,15 @@ export type JevJudgeRequest = {
   readonly questions: JevQuestions;
   readonly thresholds?: Readonly<Record<string, number>>;
   readonly timeoutMs?: number;
+  /**
+   * Reference -> PNG or JPEG bytes. Write the reference in the state, the instructions or the
+   * criteria where the image belongs; the service puts the image in its place. Experimental.
+   */
+  readonly images?: Readonly<Record<string, Uint8Array>>;
+  /** Defaults to `JEV_MODEL`. A `box` question needs `JEV_BOX_MODEL` or `jev-preview`. */
+  readonly model?: string;
+  /** Sends `TypeSafe-Danger-Zone-Long-Context: true` and raises the state budget. Experimental. */
+  readonly longContext?: boolean;
 };
 
 export type JevJudgeResult = {
@@ -124,6 +158,9 @@ export type JevMaskedRequest = {
   readonly questions: JevQuestions;
   readonly thresholds: Readonly<Record<string, number>>;
   readonly timeoutMs: number;
+  readonly assets: Readonly<Record<string, JevImageAsset>>;
+  readonly model: string;
+  readonly longContext: boolean;
 };
 
 /** What the request ends as once the rate limit retries are spent. */
@@ -184,6 +221,9 @@ function validatedCriteria(id: string, question: JevQuestion): void {
       }
       return;
     }
+    case "box":
+      if (criteria !== undefined) throw new JevUsageError(`question ${id}: a box takes no criteria`);
+      return;
     default:
       throw new JevUsageError(`question ${id}: unknown question type`);
   }
@@ -221,6 +261,45 @@ function validatedThreshold(id: string, question: JevQuestion, value: number | u
   return threshold;
 }
 
+function imageFormatOf(data: unknown): JevImageAsset["format"] | undefined {
+  if (!(data instanceof Uint8Array)) return undefined;
+  const starts = (magic: readonly number[]) => magic.every((byte, index) => data[index] === byte);
+  if (starts([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])) return "png";
+  if (starts([0xff, 0xd8, 0xff])) return "jpg";
+  return undefined;
+}
+
+/** One asset per image. `written` is the masked state and questions, where each reference must appear. */
+function imageAssets(
+  images: Readonly<Record<string, Uint8Array>>,
+  written: string,
+): Record<string, JevImageAsset> {
+  const assets: Record<string, JevImageAsset> = {};
+  let encodedBytes = 0;
+  for (const [reference, data] of Object.entries(images)) {
+    if (reference.trim().length === 0) {
+      throw new JevUsageError("an image reference must be a non-empty string");
+    }
+    const format = imageFormatOf(data);
+    if (format === undefined) {
+      throw new JevUsageError(`image ${reference}: only PNG and JPEG bytes are accepted`);
+    }
+    // Masking can rewrite a reference that looks like a credential or an id, so check what is sent.
+    if (!written.includes(reference)) {
+      throw new JevUsageError(
+        `image ${reference}: the reference does not appear in the masked state or questions`,
+      );
+    }
+    const encoded = Buffer.from(data).toString("base64");
+    encodedBytes += encoded.length;
+    assets[reference] = { type: "image", format, data_base64: encoded };
+  }
+  if (encodedBytes > JEV_MAX_IMAGE_BYTES) {
+    throw new JevUsageError(`images are larger than ${JEV_MAX_IMAGE_BYTES} bytes once encoded`);
+  }
+  return assets;
+}
+
 export function maskedJevRequest(request: JevJudgeRequest): JevMaskedRequest {
   const ids = Object.keys(request.questions ?? {});
   if (ids.length === 0) throw new JevUsageError("at least one question is required");
@@ -230,13 +309,19 @@ export function maskedJevRequest(request: JevJudgeRequest): JevMaskedRequest {
   if (!Number.isInteger(timeoutMs) || timeoutMs <= 0 || timeoutMs > JEV_MAX_TIMEOUT_MS) {
     throw new JevUsageError(`timeoutMs must be between 1 and ${JEV_MAX_TIMEOUT_MS}`);
   }
+  const model = request.model ?? JEV_MODEL;
+  if (typeof model !== "string" || model.trim().length === 0) {
+    throw new JevUsageError("model must be a non-empty string");
+  }
+  const longContext = request.longContext === true;
 
   const state = maskJevState(request.state);
   const written = typeof state === "string" ? state : JSON.stringify(state);
   if (written.trim().length === 0) throw new JevUsageError("state is empty");
-  if (written.length > JEV_MAX_STATE_CHARACTERS) {
-    throw new JevUsageError(`state is larger than ${JEV_MAX_STATE_CHARACTERS} characters`);
-  }
+  const limit = longContext ? JEV_LONG_CONTEXT_MAX_STATE_CHARACTERS : JEV_MAX_STATE_CHARACTERS;
+  if (written.length > limit) throw new JevUsageError(`state is larger than ${limit} characters`);
+  const questions = maskJevQuestions(request.questions);
+  const assets = imageAssets(request.images ?? {}, JSON.stringify({ state, questions }));
 
   const thresholds = Object.fromEntries(
     ids.map((id) => [
@@ -244,7 +329,16 @@ export function maskedJevRequest(request: JevJudgeRequest): JevMaskedRequest {
       validatedThreshold(id, request.questions[id] as JevQuestion, request.thresholds?.[id]),
     ]),
   );
-  return { state, questions: maskJevQuestions(request.questions), thresholds, timeoutMs };
+  return { state, questions, thresholds, timeoutMs, assets, model, longContext };
+}
+
+/** The danger zone headers a request needs: images for an asset or a box, long context on request. */
+function dangerZoneHeaders(request: JevMaskedRequest): Record<string, string> {
+  const hasBox = Object.values(request.questions).some((question) => question.type === "box");
+  return {
+    ...(Object.keys(request.assets).length > 0 || hasBox ? { [JEV_IMAGES_HEADER]: "true" } : {}),
+    ...(request.longContext ? { [JEV_LONG_CONTEXT_HEADER]: "true" } : {}),
+  };
 }
 
 function transportReason(error: unknown): JevUndecidedReason {
@@ -275,6 +369,7 @@ function statusFailure(status: number): JevUndecidedReason | undefined {
 
 async function attempt(
   body: string,
+  headers: Readonly<Record<string, string>>,
   timeoutMs: number,
   dependencies: JevDependencies,
 ): Promise<Attempt> {
@@ -286,6 +381,7 @@ async function attempt(
         authorization: `Bearer ${dependencies.apiKey}`,
         "content-type": "application/json",
         accept: "application/json",
+        ...headers,
       },
       body,
       signal: AbortSignal.timeout(timeoutMs),
@@ -320,13 +416,15 @@ async function send(
 ): Promise<SendOutcome> {
   const body = JSON.stringify({
     state: request.state,
-    model: JEV_MODEL,
+    model: request.model,
     questions: request.questions,
+    ...(Object.keys(request.assets).length > 0 ? { assets: request.assets } : {}),
   });
+  const headers = dangerZoneHeaders(request);
   // Only a rate limit is retried, and only twice. Nothing else is retried at all.
   for (let round = 0; round <= JEV_MAX_RATE_LIMIT_RETRIES; round += 1) {
     const remaining = Math.max(deadline - dependencies.now(), 1);
-    const outcome = await attempt(body, remaining, dependencies);
+    const outcome = await attempt(body, headers, remaining, dependencies);
     if (outcome.kind === "answered") return outcome;
     if (outcome.kind === "failed") return outcome;
     if (round === JEV_MAX_RATE_LIMIT_RETRIES) break;
@@ -348,6 +446,7 @@ type JevAnswerDetail = {
   readonly leaning?: string;
   readonly probabilities?: Readonly<Record<string, number>>;
   readonly margin?: number;
+  readonly box?: JevBox;
 };
 
 /** Binary floats: 0.6 - 0.3 is 0.30000000000000004, and a margin is read by a human. */
@@ -453,6 +552,25 @@ function scoreVerdict(answer: JsonObject, threshold: number): JevVerdict {
   return decided("score", String(score), confidence, threshold, detail);
 }
 
+const BOX_EDGES = ["top", "bottom", "left", "right"] as const;
+
+function boxVerdict(answer: JsonObject, threshold: number): JevVerdict {
+  const edges = answer.box;
+  const confidence = answer.confidence;
+  if (!isJsonObject(edges) || !BOX_EDGES.every((edge) => isFraction(edges[edge]))) {
+    return undecided("box", threshold, "response_schema_mismatch");
+  }
+  const box = Object.fromEntries(BOX_EDGES.map((edge) => [edge, edges[edge]])) as JevBox;
+  if (!isFraction(confidence) || box.left >= box.right || box.top >= box.bottom) {
+    return undecided("box", threshold, "response_schema_mismatch");
+  }
+  const detail = { leaning: "box", box };
+  if (confidence < threshold) {
+    return undecided("box", threshold, "below_threshold", confidence, detail);
+  }
+  return decided("box", "box", confidence, threshold, detail);
+}
+
 function verdictFor(question: JevQuestion, threshold: number, answer: unknown): JevVerdict {
   const { type } = question;
   if (!isJsonObject(answer)) return undecided(type, threshold, "answer_missing");
@@ -464,6 +582,8 @@ function verdictFor(question: JevQuestion, threshold: number, answer: unknown): 
       return choiceVerdict(answer, question, threshold);
     case "score":
       return scoreVerdict(answer, threshold);
+    case "box":
+      return boxVerdict(answer, threshold);
     default:
       return undecided(type, threshold, "response_schema_mismatch");
   }

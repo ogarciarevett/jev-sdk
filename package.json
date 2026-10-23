@@ -1,6 +1,6 @@
 {
   "name": "@ogarciarevett/jev-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Typed Jev decision support for repository agents: judgments, option scoring, finding routing, decision logs, an MCP server, and a stop hook.",
   "license": "Apache-2.0",
   "repository": {

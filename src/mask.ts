@@ -27,7 +27,7 @@ export type JevJsonValue =
   | readonly JevJsonValue[]
   | { readonly [key: string]: JevJsonValue };
 
-export const JEV_QUESTION_TYPES = ["noul", "choice", "score"] as const;
+export const JEV_QUESTION_TYPES = ["noul", "choice", "score", "box"] as const;
 export type JevQuestionType = (typeof JEV_QUESTION_TYPES)[number];
 
 /**
