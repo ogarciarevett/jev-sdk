@@ -69,7 +69,7 @@ The same versions are mirrored to GitHub Packages (`https://npm.pkg.github.com`)
 
 | Runtime | Support |
 | --- | --- |
-| Node.js | `^22.18.0 \|\| >=24.2.0`, the first releases with `import.meta.main`, which every command uses. |
+| Node.js | `^24.22.1`, the patched Node LTS line; includes `import.meta.main`, which every command uses. |
 | Bun | Imports work as they do in Node. `bunx --no-install jev-judge` runs the commands with Node, as their `#!/usr/bin/env node` line asks; `bunx --bun` runs them with Bun. |
 
 The package is ES modules only and ships TypeScript declarations.
