@@ -23,6 +23,7 @@ const JUDGE = await vectors("judge.json");
 
 // Real drift from the Python SDK, tracked until maskJevState catches up. test.failing passes only
 // while the case still fails, so a fix here shows up at once and the list must shrink.
+// Tracked in https://github.com/ogarciarevett/jev-sdk/issues/11.
 const KNOWN_DRIFT = new Set(["credential-named fields", "credential-shaped field name"]);
 
 describe("mask vectors", () => {
