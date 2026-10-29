@@ -9,7 +9,7 @@ import { type JevJsonValue, maskJevState, maskJevText } from "../src/mask.ts";
 // A directory or URL prefix that holds judge.json and mask.json; set it to run against a local copy.
 const SOURCE =
   process.env.JEV_VECTORS ??
-  "https://raw.githubusercontent.com/ogarciarevett/jev-py-sdk/conformance/shared-vectors/conformance/vectors";
+  "https://raw.githubusercontent.com/ogarciarevett/jev-py-sdk/main/conformance/vectors";
 
 async function vectors(name: string): Promise<any> {
   if (!/^https?:/.test(SOURCE)) return JSON.parse(await readFile(`${SOURCE}/${name}`, "utf8"));
