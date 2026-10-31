@@ -61,6 +61,8 @@ jobs:
           node-version: ${{ matrix.node }}
 
       - run: bun install --frozen-lockfile
+
+      - run: bun run lint
       - run: bunx tsc --noEmit
       - run: bun run build
 
